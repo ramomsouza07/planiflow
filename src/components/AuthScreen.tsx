@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Wallet, 
   ArrowRight, 
   Lock, 
   Mail, 
@@ -67,11 +66,13 @@ export const AuthScreen: React.FC = () => {
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-brand-blue flex items-center justify-center text-white mx-auto shadow-lg shadow-brand-blue/30">
-            <Wallet className="w-6 h-6" />
-          </div>
+          <img 
+            src="/planiflow.png" 
+            alt="PlaniFlow" 
+            className="w-16 h-16 mx-auto object-contain drop-shadow-[0_4px_16px_rgba(0,102,255,0.35)]" 
+          />
           <h1 className="text-2xl font-black tracking-tight text-white">
-            FinFlow
+            PlaniFlow
           </h1>
           <p className="text-xs text-slate-500">
             Controle financeiro inteligente, planilhas e investimentos
@@ -221,7 +222,7 @@ export const AuthScreen: React.FC = () => {
               <span>Processando...</span>
             ) : (
               <>
-                <span>{tab === 'login' ? 'Entrar no FinFlow' : 'Concluir Cadastro de Conta'}</span>
+                <span>{tab === 'login' ? 'Entrar no PlaniFlow' : 'Concluir Cadastro de Conta'}</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

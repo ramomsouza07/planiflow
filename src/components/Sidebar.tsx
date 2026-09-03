@@ -52,14 +52,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`shrink-0 flex flex-col justify-between p-5 border-r border-[#1b202e] bg-[#0b0e17]/95 min-h-screen ${isMobile ? 'w-full flex' : 'w-64 hidden lg:flex'}`}>
       <div className="space-y-7">
         
-        {/* Logo matching ref.jpg */}
+        {/* PlaniFlow Logo */}
         <div className="flex items-center gap-3 px-2 pt-1">
-          <div className="w-8 h-8 rounded-xl bg-brand-blue flex items-center justify-center text-white font-black text-sm shadow-md shadow-brand-blue/30">
-            F
-          </div>
+          <img 
+            src="/planiflow.png" 
+            alt="PlaniFlow" 
+            className="w-8 h-8 rounded-xl object-contain shadow-md shadow-brand-blue/20"
+          />
           <div>
-            <span className="text-lg font-bold tracking-tight text-white">FinFlow</span>
-            <span className="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Gestão Pessoal</span>
+            <span className="text-lg font-bold tracking-tight text-white">PlaniFlow</span>
+            <span className="block text-[10px] uppercase font-semibold text-slate-500 tracking-wider">Gestão Financeira</span>
           </div>
         </div>
 

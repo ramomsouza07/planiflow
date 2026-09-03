@@ -9,7 +9,6 @@ import {
   Download, 
   Upload, 
   RotateCcw,
-  Wallet,
   Calendar
 } from 'lucide-react';
 
@@ -67,16 +66,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewModal }) => {
         {/* Logo & Brand */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Wallet className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="/planiflow.png" 
+              alt="PlaniFlow" 
+              className="w-10 h-10 rounded-xl object-contain shadow-lg shadow-brand-blue/20" 
+            />
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                  FinFlow
+                <span className="font-extrabold text-xl tracking-tight text-white">
+                  PlaniFlow
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Planilha Pro
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-brand-blue/15 text-brand-blue border border-brand-blue/30">
+                  Gestão Pro
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">Controle Mensal de Gastos e Entradas</p>

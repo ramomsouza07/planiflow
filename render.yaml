@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: finflow-backend
+    name: planiflow-backend
     runtime: node
     plan: free
     region: oregon

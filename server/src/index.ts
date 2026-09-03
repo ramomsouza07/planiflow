@@ -55,13 +55,13 @@ app.use((req, res, next) => {
   }
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err) {
-      res.status(200).send('FinFlow API Server running. (Frontend dist not built yet).');
+      res.status(200).send('PlaniFlow API Server running. (Frontend dist not built yet).');
     }
   });
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 FinFlow Backend Server running on http://localhost:${PORT}`);
+  console.log(`🚀 PlaniFlow Backend Server running on http://localhost:${PORT}`);
 });
 
 // Graceful shutdown

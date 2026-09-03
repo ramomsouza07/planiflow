@@ -25,7 +25,7 @@ Para conectar com a sua conta do GitHub:
 1. Acesse [dashboard.render.com](https://dashboard.render.com/) e clique em **New +** > **Web Service**.
 2. Conecte o repositório que você acabou de criar no GitHub.
 3. Preencha as configurações:
-   - **Name:** `finflow-backend` (ou o nome que preferir)
+   - **Name:** `planiflow-backend` (ou o nome que preferir)
    - **Region:** `Oregon (US West)` *(mesma região do seu Supabase)*
    - **Branch:** `main`
    - **Root Directory:** *(deixe em branco)*
@@ -42,25 +42,25 @@ Para conectar com a sua conta do GitHub:
 4. Na seção **Environment Variables**, adicione as seguintes variáveis:
    - `DATABASE_URL` = `postgresql://postgres.dxtssqxpjglxoqzippuh:PlanilhaFinanceira2026%23%23@aws-0-us-west-2.pooler.supabase.com:5432/postgres`
    - `DIRECT_URL` = `postgresql://postgres.dxtssqxpjglxoqzippuh:PlanilhaFinanceira2026%23%23@aws-0-us-west-2.pooler.supabase.com:5432/postgres`
-   - `JWT_SECRET` = `finflow_super_seguro_jwt_2026_isolated`
+   - `JWT_SECRET` = `planiflow_super_seguro_jwt_2026_isolated`
    - `NODE_ENV` = `production`
 5. Clique em **Create Web Service**.
-6. Aguarde o deploy concluir e copie a URL gerada pelo Render (exemplo: `https://finflow-backend-xxxx.onrender.com`).
+6. Aguarde o deploy concluir e copie a URL gerada pelo Render (exemplo: `https://planiflow-backend-xxxx.onrender.com`).
 
 ---
 
 ## 3. 🎨 Publicar o Frontend no Netlify
 
 1. Acesse [app.netlify.com](https://app.netlify.com/) e clique em **Add new site** > **Import an existing project**.
-2. Escolha **GitHub** e selecione o repositório.
+2. Escolha **GitHub** e selecione o repositório `ramomsouza07/finflow`.
 3. O Netlify detectará automaticamente o arquivo [`netlify.toml`](file:///home/ramom/Documents/projeto-financeiro/netlify.toml) incluído no projeto:
    - **Build command:** `npm run build:client`
    - **Publish directory:** `dist`
 4. Clique em **Environment variables** (ou *Advanced* / *Site configuration* > *Environment variables*) e adicione:
    - **Key:** `VITE_API_URL`
-   - **Value:** `https://finflow-backend-xxxx.onrender.com` *(a URL do Render que você copiou no Passo 2)*
+   - **Value:** `https://planiflow-backend-xxxx.onrender.com` *(a URL do Render que você copiou no Passo 2)*
 5. Clique em **Deploy site**.
-6. O Netlify publicará o frontend e gerará um link público (ex: `https://finflow-gestao.netlify.app`).
+6. O Netlify publicará o frontend e gerará um link público (ex: `https://planiflow.netlify.app`).
 
 ---
 
