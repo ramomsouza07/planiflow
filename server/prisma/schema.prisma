@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String            @id @default(uuid())
+  email        String            @unique
+  password     String
+  name         String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  transactions Transaction[]
+  categories   Category[]
+  investments  InvestmentAsset[]
+  emergencyFund EmergencyFund?
+
+  @@map("users")
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String   // "income" | "expense"
+  description   String
+  amount        Float
+  date          String   // "YYYY-MM-DD"
+  category      String
+  paymentMethod String   // "pix" | "credit" | "debit" | "cash" | "transfer" | "other"
+  status        String   // "completed" | "pending"
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, date])
+  @@map("transactions")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   // "income" | "expense"
+  color     String
+  icon      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name, type])
+  @@index([userId])
+  @@map("categories")
+}
+
+model InvestmentAsset {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  ticker        String?
+  type          String   // "renda_fixa" | "acoes" | "fiis" | "cripto" | "reserva" | "outros"
+  institution   String
+  totalInvested Float
+  currentValue  Float
+  monthlyYield  Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("investment_assets")
+}
+
+model EmergencyFund {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetMonths       Int      @default(6)
+  currentAmount      Float    @default(0)
+  customTargetAmount Float?
+  institution        String   @default("NuConta / Tesouro Selic")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("emergency_funds")
+}
