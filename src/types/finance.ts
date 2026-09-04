@@ -28,6 +28,12 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   status: TransactionStatus;
   notes?: string;
+  cardId?: string;
+  installmentCurrent?: number;
+  installmentTotal?: number;
+  installmentGroupId?: string;
+  isRecurring?: boolean;
+  recurringBillId?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -110,3 +116,68 @@ export const INVESTMENT_TYPE_LABELS: Record<InvestmentType, string> = {
   cripto: 'Criptoativos',
   outros: 'Outros Investimentos',
 };
+
+// 1. Gestão de Cartões de Crédito & Faturas
+export interface CreditCard {
+  id: string;
+  name: string; // ex: "Nubank Ultravioleta"
+  institution: string; // ex: "Nubank"
+  lastFourDigits?: string; // ex: "3489"
+  limit: number; // Limite total
+  closingDay: number; // Dia do fechamento da fatura (1-31)
+  dueDay: number; // Dia de vencimento (1-31)
+  color: string;
+  brand?: 'mastercard' | 'visa' | 'elo' | 'amex' | 'other';
+  createdAt?: string;
+}
+
+// 3. Metas Financeiras & Sonhos (Goals Tracker)
+export interface FinancialGoal {
+  id: string;
+  title: string; // ex: "Viagem Europa 2027", "Entrada Apartamento"
+  targetAmount: number; // Valor alvo
+  currentAmount: number; // Valor acumulado
+  deadline?: string; // Data limite YYYY-MM-DD
+  category: string; // Viagem, Imóvel, Veículo, Educação, Independência, Outros
+  color: string;
+  icon?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// 4. Contas Fixas & Assinaturas Recorrentes
+export interface RecurringBill {
+  id: string;
+  name: string; // ex: "Netflix", "Aluguel", "Academia"
+  amount: number;
+  dueDay: number; // Dia do vencimento no mês (1-31)
+  category: string;
+  frequency: 'monthly' | 'yearly';
+  paymentMethod: PaymentMethod;
+  cardId?: string; // Vinculado a um cartão específico se for no crédito
+  lastPaidDate?: string; // YYYY-MM-DD
+  notes?: string;
+  createdAt?: string;
+}
+
+// 7. Score de Saúde Financeira (0 a 1000)
+export interface ScorePillar {
+  title: string;
+  score: number;
+  maxScore: number;
+  status: 'good' | 'warning' | 'critical';
+  description: string;
+  tip: string;
+}
+
+export interface FinancialHealthScore {
+  totalScore: number; // 0 a 1000
+  level: 'Crítico' | 'Regular' | 'Bom' | 'Excelente';
+  levelColor: string;
+  savingsPillar: ScorePillar;
+  emergencyPillar: ScorePillar;
+  budgetPillar: ScorePillar;
+  creditDebtPillar: ScorePillar;
+  recommendations: string[];
+}

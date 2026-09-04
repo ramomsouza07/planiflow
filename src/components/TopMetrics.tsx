@@ -7,15 +7,17 @@ import {
   ArrowUpRight, 
   PiggyBank, 
   Clock, 
-  ArrowRight
+  ArrowRight,
+  Award
 } from 'lucide-react';
 
 interface TopMetricsProps {
   onGoToOperacoes?: () => void;
+  onGoToScore?: () => void;
 }
 
-export const TopMetrics: React.FC<TopMetricsProps> = ({ onGoToOperacoes }) => {
-  const { monthlySummary, selectedMonth } = useFinance();
+export const TopMetrics: React.FC<TopMetricsProps> = ({ onGoToOperacoes, onGoToScore }) => {
+  const { monthlySummary, selectedMonth, financialScore } = useFinance();
   const { 
     totalIncome, 
     totalExpense, 
@@ -44,14 +46,14 @@ export const TopMetrics: React.FC<TopMetricsProps> = ({ onGoToOperacoes }) => {
         </div>
 
         {/* Big Amount */}
-        <div className="my-4">
+        <div className="my-3">
           <div className="text-3xl sm:text-4xl font-black font-mono tracking-tight text-white">
             {formatCurrency(balance)}
           </div>
         </div>
 
         {/* Return Badge matching ref.jpg */}
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center gap-2 text-xs mb-3">
           <span className="text-slate-400">Balanço:</span>
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
             isPositive 
@@ -63,6 +65,29 @@ export const TopMetrics: React.FC<TopMetricsProps> = ({ onGoToOperacoes }) => {
             <span className="text-slate-400 font-normal">({formatCurrency(balance)})</span>
           </div>
         </div>
+
+        {/* Financial Health Score Pill */}
+        <button
+          onClick={onGoToScore}
+          className="pt-3 border-t border-[#1d2232] flex items-center justify-between group cursor-pointer w-full text-left transition hover:opacity-90"
+        >
+          <div className="flex items-center gap-2">
+            <Award className="w-3.5 h-3.5 text-brand-blue" />
+            <span className="text-[11px] font-medium text-slate-400">
+              Score de Saúde:
+            </span>
+            <span className="text-xs font-bold font-mono text-white">
+              {financialScore.totalScore}
+            </span>
+            <span 
+              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ color: financialScore.levelColor, backgroundColor: `${financialScore.levelColor}20` }}
+            >
+              {financialScore.level}
+            </span>
+          </div>
+          <ArrowRight className="w-3 h-3 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
+        </button>
 
       </div>
 

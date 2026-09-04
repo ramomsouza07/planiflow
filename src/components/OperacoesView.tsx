@@ -25,7 +25,8 @@ import {
   TrendingDown,
   TrendingUp,
   Wallet,
-  Tag
+  Tag,
+  CreditCard as CardIcon
 } from 'lucide-react';
 
 interface OperacoesViewProps {
@@ -73,7 +74,9 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
     addCategory, 
     transactions, 
     selectedMonth, 
-    setSelectedMonth 
+    setSelectedMonth,
+    creditCards,
+    addInstallmentTransaction
   } = useFinance();
 
   const formRef = useRef<HTMLDivElement>(null);
@@ -90,6 +93,8 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [status, setStatus] = useState<TransactionStatus>('completed');
   const [notes, setNotes] = useState('');
+  const [cardId, setCardId] = useState<string>(() => creditCards[0]?.id || '');
+  const [installments, setInstallments] = useState<number>(1);
   const [keepFormOpen, setKeepFormOpen] = useState(true);
 
   // UI state
@@ -99,6 +104,13 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
   const [showNewCatInline, setShowNewCatInline] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatColor, setNewCatColor] = useState('#0066FF');
+
+  // Auto-sync cardId if not selected
+  useEffect(() => {
+    if (!cardId && creditCards.length > 0) {
+      setCardId(creditCards[0].id);
+    }
+  }, [creditCards, cardId]);
 
   // Load editing transaction if provided
   useEffect(() => {
@@ -111,11 +123,13 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
       setPaymentMethod(editingTransaction.paymentMethod);
       setStatus(editingTransaction.status);
       setNotes(editingTransaction.notes || '');
+      setCardId(editingTransaction.cardId || (creditCards[0]?.id || ''));
+      setInstallments(editingTransaction.installmentTotal || 1);
 
       // Scroll smoothly to form
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [editingTransaction]);
+  }, [editingTransaction, creditCards]);
 
   // Sync category when type or categories change
   useEffect(() => {
@@ -162,13 +176,13 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
     }, 3500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(amount.replace(',', '.'));
     if (!description.trim() || isNaN(parsedAmount) || parsedAmount <= 0) return;
 
     if (editingTransaction) {
-      updateTransaction(editingTransaction.id, {
+      await updateTransaction(editingTransaction.id, {
         type,
         description: description.trim(),
         amount: parsedAmount,
@@ -177,28 +191,49 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
         paymentMethod,
         status,
         notes: notes.trim(),
+        cardId: paymentMethod === 'credit' ? (cardId || undefined) : undefined,
       });
       triggerSuccessFeedback(`Operação "${description.trim()}" atualizada com sucesso!`);
       if (onClearEditingTransaction) onClearEditingTransaction();
       setDescription('');
       setAmount('');
       setNotes('');
+      setInstallments(1);
     } else {
-      addTransaction({
-        type,
-        description: description.trim(),
-        amount: parsedAmount,
-        date,
-        category,
-        paymentMethod,
-        status,
-        notes: notes.trim(),
-      });
-      triggerSuccessFeedback(`Operação "${description.trim()}" cadastrada com sucesso!`);
+      if (type === 'expense' && paymentMethod === 'credit' && installments > 1) {
+        await addInstallmentTransaction({
+          type: 'expense',
+          description: description.trim(),
+          amount: parsedAmount,
+          date,
+          category,
+          paymentMethod: 'credit',
+          status,
+          notes: notes.trim(),
+        }, installments, cardId || undefined);
+        triggerSuccessFeedback(`Compra parcelada em ${installments}x lançada com sucesso!`);
+      } else {
+        await addTransaction({
+          type,
+          description: description.trim(),
+          amount: parsedAmount,
+          date,
+          category,
+          paymentMethod,
+          status,
+          notes: notes.trim(),
+          cardId: paymentMethod === 'credit' ? (cardId || undefined) : undefined,
+          installmentCurrent: paymentMethod === 'credit' && installments === 1 ? 1 : undefined,
+          installmentTotal: paymentMethod === 'credit' && installments === 1 ? 1 : undefined,
+        });
+        triggerSuccessFeedback(`Operação "${description.trim()}" cadastrada com sucesso!`);
+      }
+
       if (keepFormOpen) {
         setDescription('');
         setAmount('');
         setNotes('');
+        setInstallments(1);
       }
     }
   };
@@ -209,6 +244,7 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
     setAmount('');
     setNotes('');
     setType('expense');
+    setInstallments(1);
   };
 
   const handleSaveInlineCategory = (e: React.FormEvent) => {
@@ -625,6 +661,77 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
               </select>
             </div>
           </div>
+
+          {/* Credit Card Specific Options: Card selection and Installments */}
+          {paymentMethod === 'credit' && (
+            <div className="p-4 bg-[#141824] rounded-2xl border border-purple-500/20 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-400">
+                <CardIcon className="w-4 h-4" />
+                <span>Configurações do Cartão de Crédito</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Select Card */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Cartão Utilizado
+                  </label>
+                  {creditCards.length > 0 ? (
+                    <select
+                      value={cardId}
+                      onChange={(e) => setCardId(e.target.value)}
+                      className="w-full bg-[#151926] border border-[#202638] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-blue cursor-pointer"
+                    >
+                      {creditCards.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} {c.lastFourDigits ? `(•• ${c.lastFourDigits})` : ''} - {c.institution}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20">
+                      Nenhum cartão cadastrado. Vá em "Cartões & Faturas" para cadastrar.
+                    </div>
+                  )}
+                </div>
+
+                {/* Number of Installments */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Parcelamento
+                  </label>
+                  <select
+                    value={installments}
+                    disabled={!!editingTransaction}
+                    onChange={(e) => setInstallments(Number(e.target.value))}
+                    className="w-full bg-[#151926] border border-[#202638] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-blue cursor-pointer disabled:opacity-50"
+                  >
+                    <option value={1}>1x - À vista na fatura</option>
+                    {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map(n => {
+                      const parsed = parseFloat(amount.replace(',', '.'));
+                      const partVal = !isNaN(parsed) && parsed > 0 ? (parsed / n) : null;
+                      return (
+                        <option key={n} value={n}>
+                          {n}x {partVal ? `de ${formatCurrency(partVal)}/mês` : 'parcelas'}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              {installments > 1 && !editingTransaction && (
+                <div className="text-[11px] text-slate-400 flex items-center justify-between bg-[#11141e] px-3 py-2 rounded-xl border border-[#1b202e]">
+                  <span>Serão lançadas <strong>{installments} parcelas mensais</strong> na fatura a partir de {date}.</span>
+                  {amount && !isNaN(parseFloat(amount.replace(',', '.'))) && (
+                    <span className="text-purple-300 font-bold font-mono">
+                      {installments}x de {formatCurrency(parseFloat(amount.replace(',', '.')) / installments)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Observações */}
           <div>

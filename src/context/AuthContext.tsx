@@ -84,9 +84,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const updateProfile = (data: Partial<User>) => {
+  const updateProfile = async (data: Partial<User>) => {
     if (!user) return;
-    setUser({ ...user, ...data });
+    setUser(prev => prev ? { ...prev, ...data } : null);
+    if (data.name) {
+      try {
+        const res = await api.auth.updateProfile({ name: data.name });
+        if (res?.user) {
+          setUser(prev => prev ? { ...prev, name: res.user.name } : null);
+        }
+      } catch (err) {
+        console.warn('Erro ao sincronizar perfil cifrado com servidor:', err);
+      }
+    }
   };
 
   return (

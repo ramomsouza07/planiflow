@@ -10,13 +10,28 @@ import {
   Receipt,
   FileDown,
   FileUp,
-  LogOut
+  LogOut,
+  ShieldCheck,
+  CreditCard,
+  CalendarClock,
+  Target,
+  Award
 } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
 import { exportToCSV, parseCSV } from '../utils/csv';
 
-export type ViewType = 'dashboard' | 'operacoes' | 'spreadsheet' | 'analytics' | 'investments' | 'settings';
+export type ViewType = 
+  | 'dashboard' 
+  | 'operacoes' 
+  | 'cards'
+  | 'subscriptions'
+  | 'goals'
+  | 'score'
+  | 'spreadsheet' 
+  | 'analytics' 
+  | 'investments' 
+  | 'settings';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -103,6 +118,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Receipt className="w-4 h-4 text-[#00d284]" />
             <span>Operações</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('cards')}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              currentView === 'cards'
+                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/25'
+                : 'text-slate-400 hover:text-white hover:bg-[#141724]'
+            }`}
+          >
+            <CreditCard className="w-4 h-4 text-purple-400" />
+            <span>Cartões & Faturas</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('subscriptions')}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              currentView === 'subscriptions'
+                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/25'
+                : 'text-slate-400 hover:text-white hover:bg-[#141724]'
+            }`}
+          >
+            <CalendarClock className="w-4 h-4 text-amber-400" />
+            <span>Assinaturas & Fixas</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('goals')}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              currentView === 'goals'
+                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/25'
+                : 'text-slate-400 hover:text-white hover:bg-[#141724]'
+            }`}
+          >
+            <Target className="w-4 h-4 text-cyan-400" />
+            <span>Metas & Sonhos</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('score')}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              currentView === 'score'
+                ? 'bg-brand-blue text-white shadow-lg shadow-brand-blue/25'
+                : 'text-slate-400 hover:text-white hover:bg-[#141724]'
+            }`}
+          >
+            <Award className="w-4 h-4 text-emerald-400" />
+            <span>Score Financeiro</span>
           </button>
 
           <button
@@ -210,6 +273,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* User Profile Footer Card */}
       <div className="pt-4 border-t border-[#1b202e] space-y-2">
+        {/* AES-256 Security Status */}
+        <div 
+          onClick={() => onSelectView('settings')}
+          className="flex items-center justify-between px-3 py-2 bg-[#121522] border border-[#1e2436] rounded-xl cursor-pointer hover:border-[#00d284]/40 transition group"
+          title="Ver Central de Segurança & Criptografia"
+        >
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 group-hover:text-slate-200 transition">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#00d284]" />
+            <span className="font-medium">Proteção AES-256</span>
+          </div>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00d284] animate-pulse" />
+        </div>
+
         <div 
           onClick={() => onSelectView('settings')}
           className="flex items-center justify-between p-2 rounded-xl hover:bg-[#141724] cursor-pointer transition"

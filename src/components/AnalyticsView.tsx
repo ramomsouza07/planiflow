@@ -521,7 +521,16 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onGoToOperacoes })
                     <YAxis stroke="#64748b" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${v}`} />
                     <Tooltip 
                       formatter={(val: any) => [formatCurrency(Number(val)), '']} 
-                      contentStyle={{ backgroundColor: '#141824', borderColor: '#232a3d', borderRadius: '12px' }}
+                      contentStyle={{ 
+                        backgroundColor: '#141824', 
+                        borderColor: '#232a3d', 
+                        borderRadius: '12px',
+                        color: '#ffffff',
+                        boxShadow: '0 8px 20px -4px rgba(0, 0, 0, 0.5)'
+                      }}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#94a3b8', fontWeight: 600 }}
+                      cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px' }} />
                     <Bar dataKey="Entradas" fill="#00D284" radius={[6, 6, 0, 0]} maxBarSize={60} />

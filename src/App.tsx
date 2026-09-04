@@ -12,6 +12,10 @@ import { AnalyticsView } from './components/AnalyticsView';
 import { InvestmentsView } from './components/InvestmentsView';
 import { SettingsView } from './components/SettingsView';
 import { OperacoesView } from './components/OperacoesView';
+import { CardsView } from './components/CardsView';
+import { SubscriptionsView } from './components/SubscriptionsView';
+import { GoalsView } from './components/GoalsView';
+import { FinancialScoreView } from './components/FinancialScoreView';
 import { AuthScreen } from './components/AuthScreen';
 import type { Transaction } from './types/finance';
 
@@ -83,7 +87,10 @@ const DashboardContent: React.FC = () => {
           {currentView === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
               {/* Top Row: Total Holding + Mini Metric Cards */}
-              <TopMetrics onGoToOperacoes={handleGoToOperacoes} />
+              <TopMetrics 
+                onGoToOperacoes={handleGoToOperacoes} 
+                onGoToScore={() => setCurrentView('score')}
+              />
 
               {/* Middle Row: Large Portfolio Performance Wave Chart */}
               <PerformanceChart />
@@ -111,6 +118,22 @@ const DashboardContent: React.FC = () => {
               onGoToSpreadsheet={() => setCurrentView('spreadsheet')}
               onGoToAnalytics={() => setCurrentView('analytics')}
             />
+          )}
+
+          {currentView === 'cards' && (
+            <CardsView onGoToOperacoes={handleGoToOperacoes} />
+          )}
+
+          {currentView === 'subscriptions' && (
+            <SubscriptionsView />
+          )}
+
+          {currentView === 'goals' && (
+            <GoalsView />
+          )}
+
+          {currentView === 'score' && (
+            <FinancialScoreView onGoToOperacoes={handleGoToOperacoes} />
           )}
 
           {currentView === 'spreadsheet' && (

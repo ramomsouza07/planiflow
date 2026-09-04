@@ -395,7 +395,7 @@ export const ChartsSection: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} />
                 <YAxis stroke="#64748b" tick={{ fontSize: 11 }} tickFormatter={(v) => `R$ ${v}`} />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }} />
                 <Legend 
                   wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }}
                   formatter={(value) => <span className="text-slate-300">{value}</span>} 

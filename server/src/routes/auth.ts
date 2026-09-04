@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { 
+  encryptText, 
+  decryptUser, 
+  getSecurityStatus 
+} from '../utils/encryption';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'finflow_secure_jwt_secret_token_2026_isolated';
@@ -20,6 +25,11 @@ const DEFAULT_CATEGORIES = [
   { name: 'Rendimentos & Dividendos', type: 'income', color: '#34d399', icon: 'TrendingUp' },
   { name: 'Outras Entradas', type: 'income', color: '#059669', icon: 'Wallet' },
 ];
+
+// Security status endpoint to verify encryption health
+router.get('/security-status', (_req, res): void => {
+  res.json(getSecurityStatus());
+});
 
 // Register
 router.post('/register', async (req, res): Promise<void> => {
@@ -42,10 +52,11 @@ router.post('/register', async (req, res): Promise<void> => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const encryptedName = encryptText(name.trim());
 
     const user = await prisma.user.create({
       data: {
-        name: name.trim(),
+        name: encryptedName,
         email: cleanEmail,
         password: hashedPassword,
         categories: {
@@ -60,7 +71,7 @@ router.post('/register', async (req, res): Promise<void> => {
           create: {
             targetMonths: 6,
             currentAmount: 0,
-            institution: 'NuConta / Tesouro Selic',
+            institution: encryptText('NuConta / Tesouro Selic'),
           },
         },
       },
@@ -79,9 +90,9 @@ router.post('/register', async (req, res): Promise<void> => {
     );
 
     res.status(201).json({
-      user,
+      user: decryptUser(user),
       token,
-      message: 'Conta criada com sucesso!',
+      message: 'Conta criada com sucesso com criptografia ativada!',
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -122,12 +133,12 @@ router.post('/login', async (req, res): Promise<void> => {
     );
 
     res.json({
-      user: {
+      user: decryptUser({
         id: user.id,
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,
-      },
+      }),
       token,
     });
   } catch (error) {
@@ -154,10 +165,38 @@ router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response):
       return;
     }
 
-    res.json({ user });
+    res.json({ user: decryptUser(user) });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Erro ao carregar perfil do usuário.' });
+  }
+});
+
+// Update Profile
+router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { name } = req.body;
+
+    const dataToUpdate: Record<string, any> = {};
+    if (name !== undefined) {
+      dataToUpdate.name = encryptText(String(name).trim());
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.userId },
+      data: dataToUpdate,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        createdAt: true,
+      },
+    });
+
+    res.json({ user: decryptUser(updatedUser) });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Erro ao atualizar perfil do usuário.' });
   }
 });
 

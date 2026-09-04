@@ -5,11 +5,21 @@ import type {
   FilterOptions, 
   MonthlySummary, 
   InvestmentAsset, 
-  EmergencyFundConfig 
+  EmergencyFundConfig,
+  CreditCard,
+  FinancialGoal,
+  RecurringBill,
+  FinancialHealthScore
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../types/finance';
-import { SAMPLE_DEMO_TRANSACTIONS } from '../utils/initialData';
+import { 
+  SAMPLE_DEMO_TRANSACTIONS, 
+  SAMPLE_DEMO_CARDS, 
+  SAMPLE_DEMO_GOALS, 
+  SAMPLE_DEMO_BILLS 
+} from '../utils/initialData';
 import { getCurrentMonth } from '../utils/formatters';
+import { calculateFinancialScore } from '../utils/scoreCalculator';
 import { api, getToken } from '../services/api';
 import { useAuth } from './AuthContext';
 
@@ -38,6 +48,34 @@ interface FinanceContextType {
   updateEmergencyFund: (config: Partial<EmergencyFundConfig>) => Promise<void>;
   isLoadingData: boolean;
   reloadAllData: () => Promise<void>;
+
+  // 1. Cartões de Crédito
+  creditCards: CreditCard[];
+  addCreditCard: (card: Omit<CreditCard, 'id' | 'createdAt'>) => Promise<void>;
+  updateCreditCard: (id: string, card: Partial<CreditCard>) => Promise<void>;
+  deleteCreditCard: (id: string) => Promise<void>;
+  addInstallmentTransaction: (
+    baseData: Omit<Transaction, 'id' | 'createdAt'>,
+    installments: number,
+    cardId?: string
+  ) => Promise<void>;
+
+  // 3. Metas Financeiras
+  goals: FinancialGoal[];
+  addGoal: (goal: Omit<FinancialGoal, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateGoal: (id: string, goal: Partial<FinancialGoal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  contributeToGoal: (id: string, amount: number, isWithdrawal?: boolean) => Promise<void>;
+
+  // 4. Contas Fixas & Assinaturas
+  recurringBills: RecurringBill[];
+  addRecurringBill: (bill: Omit<RecurringBill, 'id' | 'createdAt'>) => Promise<void>;
+  updateRecurringBill: (id: string, bill: Partial<RecurringBill>) => Promise<void>;
+  deleteRecurringBill: (id: string) => Promise<void>;
+  markBillAsPaid: (id: string, payDate?: string) => Promise<void>;
+
+  // 7. Score de Saúde Financeira
+  financialScore: FinancialHealthScore;
 }
 
 const DEFAULT_EMERGENCY_FUND: EmergencyFundConfig = {
@@ -57,6 +95,76 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [investments, setInvestments] = useState<InvestmentAsset[]>([]);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFundConfig>(DEFAULT_EMERGENCY_FUND);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+
+  // User-scoped LocalStorage Keys
+  const cardsStorageKey = useMemo(() => user ? `finflow_cards_${user.id}` : 'finflow_cards_guest', [user]);
+  const goalsStorageKey = useMemo(() => user ? `finflow_goals_${user.id}` : 'finflow_goals_guest', [user]);
+  const billsStorageKey = useMemo(() => user ? `finflow_bills_${user.id}` : 'finflow_bills_guest', [user]);
+
+  const [creditCards, setCreditCards] = useState<CreditCard[]>(() => {
+    try {
+      const saved = localStorage.getItem('finflow_cards_guest');
+      return saved ? JSON.parse(saved) : SAMPLE_DEMO_CARDS;
+    } catch {
+      return SAMPLE_DEMO_CARDS;
+    }
+  });
+
+  const [goals, setGoals] = useState<FinancialGoal[]>(() => {
+    try {
+      const saved = localStorage.getItem('finflow_goals_guest');
+      return saved ? JSON.parse(saved) : SAMPLE_DEMO_GOALS;
+    } catch {
+      return SAMPLE_DEMO_GOALS;
+    }
+  });
+
+  const [recurringBills, setRecurringBills] = useState<RecurringBill[]>(() => {
+    try {
+      const saved = localStorage.getItem('finflow_bills_guest');
+      return saved ? JSON.parse(saved) : SAMPLE_DEMO_BILLS;
+    } catch {
+      return SAMPLE_DEMO_BILLS;
+    }
+  });
+
+  // Rehydrate on user change
+  useEffect(() => {
+    try {
+      const savedCards = localStorage.getItem(cardsStorageKey);
+      if (savedCards) setCreditCards(JSON.parse(savedCards));
+      else if (!user) setCreditCards(SAMPLE_DEMO_CARDS);
+
+      const savedGoals = localStorage.getItem(goalsStorageKey);
+      if (savedGoals) setGoals(JSON.parse(savedGoals));
+      else if (!user) setGoals(SAMPLE_DEMO_GOALS);
+
+      const savedBills = localStorage.getItem(billsStorageKey);
+      if (savedBills) setRecurringBills(JSON.parse(savedBills));
+      else if (!user) setRecurringBills(SAMPLE_DEMO_BILLS);
+    } catch (e) {
+      console.warn('Error reading stored cards/goals/bills:', e);
+    }
+  }, [cardsStorageKey, goalsStorageKey, billsStorageKey, user]);
+
+  // Persist mutations
+  useEffect(() => {
+    try {
+      localStorage.setItem(cardsStorageKey, JSON.stringify(creditCards));
+    } catch {}
+  }, [creditCards, cardsStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(goalsStorageKey, JSON.stringify(goals));
+    } catch {}
+  }, [goals, goalsStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(billsStorageKey, JSON.stringify(recurringBills));
+    } catch {}
+  }, [recurringBills, billsStorageKey]);
 
   const [selectedMonth, setSelectedMonth] = useState<string>(() => getCurrentMonth());
 
@@ -183,9 +291,152 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const loadSampleData = async () => {
     try {
       await bulkAddTransactions(SAMPLE_DEMO_TRANSACTIONS);
+      setCreditCards(SAMPLE_DEMO_CARDS);
+      setGoals(SAMPLE_DEMO_GOALS);
+      setRecurringBills(SAMPLE_DEMO_BILLS);
     } catch {
       // ignore
     }
+  };
+
+  // 1. Credit Cards mutations
+  const addCreditCard = async (card: Omit<CreditCard, 'id' | 'createdAt'>) => {
+    const newCard: CreditCard = {
+      ...card,
+      id: `card-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setCreditCards(prev => [...prev, newCard]);
+  };
+
+  const updateCreditCard = async (id: string, data: Partial<CreditCard>) => {
+    setCreditCards(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
+  };
+
+  const deleteCreditCard = async (id: string) => {
+    setCreditCards(prev => prev.filter(c => c.id !== id));
+  };
+
+  const addInstallmentTransaction = async (
+    baseData: Omit<Transaction, 'id' | 'createdAt'>,
+    installments: number,
+    cardId?: string
+  ) => {
+    const count = Math.max(1, Math.min(60, installments));
+    const totalAmount = baseData.amount;
+    const installmentAmount = Math.round((totalAmount / count) * 100) / 100;
+    const groupId = `grp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const [startYear, startMonth, startDay] = baseData.date.split('-').map(Number);
+    const generatedTxs: Omit<Transaction, 'id' | 'createdAt'>[] = [];
+
+    for (let i = 1; i <= count; i++) {
+      const targetDate = new Date(startYear, startMonth - 1 + (i - 1), startDay);
+      const yyyy = targetDate.getFullYear();
+      const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(Math.min(startDay, 28)).padStart(2, '0');
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+
+      generatedTxs.push({
+        ...baseData,
+        description: count > 1 ? `${baseData.description} (${i}/${count})` : baseData.description,
+        amount: installmentAmount,
+        date: dateStr,
+        paymentMethod: 'credit',
+        cardId: cardId || undefined,
+        installmentCurrent: i,
+        installmentTotal: count,
+        installmentGroupId: groupId,
+      });
+    }
+
+    if (generatedTxs.length === 1) {
+      await addTransaction(generatedTxs[0]);
+    } else {
+      await bulkAddTransactions(generatedTxs);
+    }
+  };
+
+  // 3. Goals mutations
+  const addGoal = async (goal: Omit<FinancialGoal, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newGoal: FinancialGoal = {
+      ...goal,
+      id: `goal-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setGoals(prev => [...prev, newGoal]);
+  };
+
+  const updateGoal = async (id: string, data: Partial<FinancialGoal>) => {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...data, updatedAt: new Date().toISOString() } : g));
+  };
+
+  const deleteGoal = async (id: string) => {
+    setGoals(prev => prev.filter(g => g.id !== id));
+  };
+
+  const contributeToGoal = async (id: string, amount: number, isWithdrawal: boolean = false) => {
+    const targetGoal = goals.find(g => g.id === id);
+    if (!targetGoal) return;
+
+    const delta = isWithdrawal ? -Math.abs(amount) : Math.abs(amount);
+    const nextAmount = Math.max(0, targetGoal.currentAmount + delta);
+
+    await updateGoal(id, { currentAmount: nextAmount });
+
+    // Register transaction associated with this goal
+    await addTransaction({
+      type: isWithdrawal ? 'income' : 'expense',
+      description: isWithdrawal ? `Resgate Meta: ${targetGoal.title}` : `Aporte Meta: ${targetGoal.title}`,
+      amount: Math.abs(amount),
+      date: new Date().toISOString().split('T')[0],
+      category: 'Aporte Investimentos / Reserva',
+      paymentMethod: 'pix',
+      status: 'completed',
+      notes: `Movimentação da meta "${targetGoal.title}"`,
+    });
+  };
+
+  // 4. Recurring Bills mutations
+  const addRecurringBill = async (bill: Omit<RecurringBill, 'id' | 'createdAt'>) => {
+    const newBill: RecurringBill = {
+      ...bill,
+      id: `bill-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setRecurringBills(prev => [...prev, newBill]);
+  };
+
+  const updateRecurringBill = async (id: string, data: Partial<RecurringBill>) => {
+    setRecurringBills(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
+  };
+
+  const deleteRecurringBill = async (id: string) => {
+    setRecurringBills(prev => prev.filter(b => b.id !== id));
+  };
+
+  const markBillAsPaid = async (id: string, payDate?: string) => {
+    const bill = recurringBills.find(b => b.id === id);
+    if (!bill) return;
+
+    const today = payDate || new Date().toISOString().split('T')[0];
+    await updateRecurringBill(id, { lastPaidDate: today });
+
+    // Automatically create transaction
+    await addTransaction({
+      type: 'expense',
+      description: `${bill.name} (Assinatura)`,
+      amount: bill.amount,
+      date: today,
+      category: bill.category || 'Assinaturas & Serviços',
+      paymentMethod: bill.paymentMethod || 'credit',
+      cardId: bill.cardId,
+      status: 'completed',
+      isRecurring: true,
+      recurringBillId: bill.id,
+      notes: 'Pagamento recorrente confirmado',
+    });
   };
 
   // Category mutations
@@ -284,6 +535,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [transactions, selectedMonth]);
 
+  // 7. Dynamic Financial Score
+  const financialScore = useMemo(() => {
+    return calculateFinancialScore({
+      transactions,
+      monthlySummary,
+      emergencyFund,
+      creditCards,
+      recurringBills,
+      monthlyIncomeEstimate: user?.monthlyIncomeEstimate || 0,
+    });
+  }, [transactions, monthlySummary, emergencyFund, creditCards, recurringBills, user]);
+
   // Filtered Transactions
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
@@ -340,6 +603,30 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateEmergencyFund,
         isLoadingData,
         reloadAllData: loadUserData,
+
+        // 1. Cartões de Crédito
+        creditCards,
+        addCreditCard,
+        updateCreditCard,
+        deleteCreditCard,
+        addInstallmentTransaction,
+
+        // 3. Metas Financeiras
+        goals,
+        addGoal,
+        updateGoal,
+        deleteGoal,
+        contributeToGoal,
+
+        // 4. Contas Fixas & Assinaturas
+        recurringBills,
+        addRecurringBill,
+        updateRecurringBill,
+        deleteRecurringBill,
+        markBillAsPaid,
+
+        // 7. Score de Saúde Financeira
+        financialScore,
       }}
     >
       {children}

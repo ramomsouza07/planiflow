@@ -63,6 +63,24 @@ export const api = {
     me: async () => {
       return request<{ user: { id: string; name: string; email: string } }>('/api/auth/me');
     },
+    updateProfile: async (data: { name?: string }) => {
+      return request<{ user: { id: string; name: string; email: string } }>('/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    getSecurityStatus: async () => {
+      return request<{
+        status: string;
+        algorithm: string;
+        keyLengthBits: number;
+        authenticatedEncryption: boolean;
+        atRestProtection: string;
+        passwordProtection: string;
+        dataIsolation: string;
+        timestamp: string;
+      }>('/api/auth/security-status');
+    },
   },
 
   transactions: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ChevronLeft, ChevronRight, Bell, Menu } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Menu, ShieldCheck } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
 import { formatMonthYear } from '../utils/formatters';
@@ -72,8 +72,18 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right items: Notification icon, Profile pill */}
+      {/* Right items: Security badge, Notification icon, Profile pill */}
       <div className="flex items-center gap-3">
+        {/* Security badge pill */}
+        <div 
+          onClick={onOpenSettings}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#131722] border border-[#202638] text-[10px] text-slate-400 hover:text-white hover:border-[#00d284]/40 cursor-pointer transition"
+          title="Seus dados estão protegidos com criptografia AES-256"
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-[#00d284]" />
+          <span className="font-semibold text-slate-300">Criptografia AES-256</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00d284] animate-pulse" />
+        </div>
 
         <button 
           className="w-9 h-9 rounded-full bg-[#131622] border border-[#202638] flex items-center justify-center text-slate-400 hover:text-white transition"

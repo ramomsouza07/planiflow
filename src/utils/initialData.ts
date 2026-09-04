@@ -1,4 +1,9 @@
-import type { Transaction } from '../types/finance';
+import type { 
+  Transaction, 
+  CreditCard, 
+  FinancialGoal, 
+  RecurringBill 
+} from '../types/finance';
 
 // Array vazio por padrão - sem dados fictícios
 export const INITIAL_TRANSACTIONS: Transaction[] = [];
@@ -9,7 +14,7 @@ export const SAMPLE_DEMO_TRANSACTIONS: Transaction[] = [
     id: 'demo-1',
     type: 'income',
     description: 'Salário Mensal',
-    amount: 5500.00,
+    amount: 6500.00,
     date: '2026-09-01',
     category: 'Salário',
     paymentMethod: 'transfer',
@@ -19,8 +24,8 @@ export const SAMPLE_DEMO_TRANSACTIONS: Transaction[] = [
   {
     id: 'demo-2',
     type: 'expense',
-    description: 'Aluguel',
-    amount: 1800.00,
+    description: 'Aluguel & Condomínio',
+    amount: 1850.00,
     date: '2026-09-05',
     category: 'Moradia (Aluguel, Contas)',
     paymentMethod: 'pix',
@@ -30,12 +35,168 @@ export const SAMPLE_DEMO_TRANSACTIONS: Transaction[] = [
   {
     id: 'demo-3',
     type: 'expense',
-    description: 'Supermercado',
-    amount: 650.00,
+    description: 'Supermercado Mensal',
+    amount: 820.00,
     date: '2026-09-02',
     category: 'Alimentação & Mercado',
     paymentMethod: 'credit',
+    cardId: 'card-demo-1',
     status: 'completed',
     createdAt: '2026-09-02T18:00:00.000Z',
+  },
+  {
+    id: 'demo-4',
+    type: 'expense',
+    description: 'Notebook Dell (3/10)',
+    amount: 450.00,
+    date: '2026-09-12',
+    category: 'Compras Pessoais',
+    paymentMethod: 'credit',
+    cardId: 'card-demo-1',
+    installmentCurrent: 3,
+    installmentTotal: 10,
+    installmentGroupId: 'grp-demo-notebook',
+    status: 'completed',
+    createdAt: '2026-09-12T10:00:00.000Z',
+  },
+  {
+    id: 'demo-5',
+    type: 'income',
+    description: 'Dividendos FIIs (MXRF11 / HGLG11)',
+    amount: 320.00,
+    date: '2026-09-15',
+    category: 'Rendimentos & Dividendos',
+    paymentMethod: 'transfer',
+    status: 'completed',
+    createdAt: '2026-09-15T09:00:00.000Z',
+  },
+  {
+    id: 'demo-6',
+    type: 'expense',
+    description: 'Combustível & Posto',
+    amount: 280.00,
+    date: '2026-09-18',
+    category: 'Transporte & Combustível',
+    paymentMethod: 'credit',
+    cardId: 'card-demo-2',
+    status: 'completed',
+    createdAt: '2026-09-18T14:00:00.000Z',
   }
 ];
+
+export const SAMPLE_DEMO_CARDS: CreditCard[] = [
+  {
+    id: 'card-demo-1',
+    name: 'Nubank Ultravioleta',
+    institution: 'Nubank',
+    lastFourDigits: '8492',
+    limit: 15000,
+    closingDay: 5,
+    dueDay: 12,
+    color: '#820AD1',
+    brand: 'mastercard',
+    createdAt: '2026-01-10T10:00:00.000Z',
+  },
+  {
+    id: 'card-demo-2',
+    name: 'XP Visa Infinite',
+    institution: 'XP Investimentos',
+    lastFourDigits: '1944',
+    limit: 30000,
+    closingDay: 18,
+    dueDay: 25,
+    color: '#151821',
+    brand: 'visa',
+    createdAt: '2026-02-15T10:00:00.000Z',
+  }
+];
+
+export const SAMPLE_DEMO_GOALS: FinancialGoal[] = [
+  {
+    id: 'goal-demo-1',
+    title: 'Viagem Japão & Ásia 2027',
+    targetAmount: 28000,
+    currentAmount: 11500,
+    deadline: '2027-10-15',
+    category: 'Viagem',
+    color: '#0066FF',
+    icon: 'Plane',
+    notes: 'Passagens aéreas + estadia em Tokyo e Kyoto',
+    createdAt: '2026-01-01T10:00:00.000Z',
+  },
+  {
+    id: 'goal-demo-2',
+    title: 'Entrada Apartamento Próprio',
+    targetAmount: 60000,
+    currentAmount: 24000,
+    deadline: '2028-12-31',
+    category: 'Imóvel',
+    color: '#00D284',
+    icon: 'Home',
+    notes: 'Fundo para dar entrada no financiamento imobiliário',
+    createdAt: '2026-02-01T10:00:00.000Z',
+  },
+  {
+    id: 'goal-demo-3',
+    title: 'Troca de Carro / Veículo',
+    targetAmount: 25000,
+    currentAmount: 7800,
+    deadline: '2027-06-30',
+    category: 'Veículo',
+    color: '#FFA800',
+    icon: 'Car',
+    notes: 'Valor complementar para troca do veículo',
+    createdAt: '2026-03-01T10:00:00.000Z',
+  }
+];
+
+export const SAMPLE_DEMO_BILLS: RecurringBill[] = [
+  {
+    id: 'bill-demo-1',
+    name: 'Netflix 4K Premium',
+    amount: 59.90,
+    dueDay: 15,
+    category: 'Assinaturas & Serviços',
+    frequency: 'monthly',
+    paymentMethod: 'credit',
+    cardId: 'card-demo-1',
+    notes: 'Plano família 4 telas',
+    createdAt: '2026-01-01T10:00:00.000Z',
+  },
+  {
+    id: 'bill-demo-2',
+    name: 'Spotify Família',
+    amount: 34.90,
+    dueDay: 10,
+    category: 'Assinaturas & Serviços',
+    frequency: 'monthly',
+    paymentMethod: 'credit',
+    cardId: 'card-demo-1',
+    notes: 'Música sem anúncios',
+    createdAt: '2026-01-01T10:00:00.000Z',
+  },
+  {
+    id: 'bill-demo-3',
+    name: 'Academia Smart Fit Black',
+    amount: 139.90,
+    dueDay: 20,
+    category: 'Saúde & Farmácia',
+    frequency: 'monthly',
+    paymentMethod: 'credit',
+    cardId: 'card-demo-2',
+    notes: 'Acesso a todas as unidades',
+    createdAt: '2026-01-01T10:00:00.000Z',
+  },
+  {
+    id: 'bill-demo-4',
+    name: 'Internet Fibra Óptica 600MB',
+    amount: 109.90,
+    dueDay: 8,
+    category: 'Moradia (Aluguel, Contas)',
+    frequency: 'monthly',
+    paymentMethod: 'pix',
+    notes: 'Boleto/PIX débito mensal',
+    createdAt: '2026-01-01T10:00:00.000Z',
+  }
+];
+

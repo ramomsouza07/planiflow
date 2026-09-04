@@ -1,6 +1,10 @@
 import { Router, Response } from 'express';
 import { prisma } from '../prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { 
+  encryptText, 
+  decryptInvestment 
+} from '../utils/encryption';
 
 const router = Router();
 router.use(requireAuth);
@@ -13,7 +17,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ investments });
+    res.json({ investments: investments.map(decryptInvestment) });
   } catch (error) {
     console.error('Error fetching investments:', error);
     res.status(500).json({ error: 'Erro ao buscar investimentos.' });
@@ -37,18 +41,18 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     const asset = await prisma.investmentAsset.create({
       data: {
         userId: req.userId!,
-        name: String(name).trim(),
-        ticker: ticker ? String(ticker).trim().toUpperCase() : null,
+        name: encryptText(String(name).trim()),
+        ticker: ticker ? encryptText(String(ticker).trim().toUpperCase()) : null,
         type: String(type || 'renda_fixa'),
-        institution: String(institution || 'Corretora').trim(),
+        institution: encryptText(String(institution || 'Corretora').trim()),
         totalInvested: investedNum,
         currentValue: currentNum,
         monthlyYield: yieldNum,
-        notes: notes ? String(notes).trim() : null,
+        notes: notes ? encryptText(String(notes).trim()) : null,
       },
     });
 
-    res.status(201).json({ investment: asset });
+    res.status(201).json({ investment: decryptInvestment(asset) });
   } catch (error) {
     console.error('Error creating investment:', error);
     res.status(500).json({ error: 'Erro ao cadastrar investimento.' });
@@ -73,18 +77,18 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response): Promise<voi
     const updated = await prisma.investmentAsset.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name: String(name).trim() }),
-        ...(ticker !== undefined && { ticker: ticker ? String(ticker).trim().toUpperCase() : null }),
+        ...(name !== undefined && { name: encryptText(String(name).trim()) }),
+        ...(ticker !== undefined && { ticker: ticker ? encryptText(String(ticker).trim().toUpperCase()) : null }),
         ...(type !== undefined && { type: String(type) }),
-        ...(institution !== undefined && { institution: String(institution).trim() }),
+        ...(institution !== undefined && { institution: encryptText(String(institution).trim()) }),
         ...(totalInvested !== undefined && { totalInvested: Number(totalInvested) }),
         ...(currentValue !== undefined && { currentValue: Number(currentValue) }),
         ...(monthlyYield !== undefined && { monthlyYield: Number(monthlyYield) }),
-        ...(notes !== undefined && { notes: notes ? String(notes).trim() : null }),
+        ...(notes !== undefined && { notes: notes ? encryptText(String(notes).trim()) : null }),
       },
     });
 
-    res.json({ investment: updated });
+    res.json({ investment: decryptInvestment(updated) });
   } catch (error) {
     console.error('Error updating investment:', error);
     res.status(500).json({ error: 'Erro ao atualizar investimento.' });

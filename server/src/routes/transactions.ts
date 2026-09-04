@@ -1,6 +1,10 @@
 import { Router, Response } from 'express';
 import { prisma } from '../prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { 
+  encryptText, 
+  decryptTransaction 
+} from '../utils/encryption';
 
 const router = Router();
 
@@ -15,7 +19,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
       orderBy: { date: 'desc' },
     });
 
-    res.json({ transactions });
+    res.json({ transactions: transactions.map(decryptTransaction) });
   } catch (error) {
     console.error('Error fetching transactions:', error);
     res.status(500).json({ error: 'Erro ao buscar lançamentos.' });
@@ -36,17 +40,17 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
       data: {
         userId: req.userId!,
         type: type === 'income' ? 'income' : 'expense',
-        description: String(description).trim(),
+        description: encryptText(String(description).trim()),
         amount: Number(amount),
         date: String(date),
         category: String(category),
         paymentMethod: String(paymentMethod || 'pix'),
         status: String(status || 'completed'),
-        notes: notes ? String(notes).trim() : null,
+        notes: notes ? encryptText(String(notes).trim()) : null,
       },
     });
 
-    res.status(201).json({ transaction });
+    res.status(201).json({ transaction: decryptTransaction(transaction) });
   } catch (error) {
     console.error('Error creating transaction:', error);
     res.status(500).json({ error: 'Erro ao salvar operação.' });
@@ -73,17 +77,17 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response): Promise<voi
       where: { id },
       data: {
         ...(type !== undefined && { type: type === 'income' ? 'income' : 'expense' }),
-        ...(description !== undefined && { description: String(description).trim() }),
+        ...(description !== undefined && { description: encryptText(String(description).trim()) }),
         ...(amount !== undefined && { amount: Number(amount) }),
         ...(date !== undefined && { date: String(date) }),
         ...(category !== undefined && { category: String(category) }),
         ...(paymentMethod !== undefined && { paymentMethod: String(paymentMethod) }),
         ...(status !== undefined && { status: String(status) }),
-        ...(notes !== undefined && { notes: notes ? String(notes).trim() : null }),
+        ...(notes !== undefined && { notes: notes ? encryptText(String(notes).trim()) : null }),
       },
     });
 
-    res.json({ transaction: updated });
+    res.json({ transaction: decryptTransaction(updated) });
   } catch (error) {
     console.error('Error updating transaction:', error);
     res.status(500).json({ error: 'Erro ao atualizar operação.' });
@@ -131,13 +135,13 @@ router.post('/bulk', async (req: AuthenticatedRequest, res: Response): Promise<v
           data: {
             userId: req.userId!,
             type: item.type === 'income' ? 'income' : 'expense',
-            description: String(item.description).trim(),
+            description: encryptText(String(item.description).trim()),
             amount: Number(item.amount),
             date: String(item.date),
             category: String(item.category || 'Outras Despesas'),
             paymentMethod: String(item.paymentMethod || 'other'),
             status: String(item.status || 'completed'),
-            notes: item.notes ? String(item.notes).trim() : null,
+            notes: item.notes ? encryptText(String(item.notes).trim()) : null,
           },
         })
       )

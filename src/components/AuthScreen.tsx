@@ -8,7 +8,8 @@ import {
   DollarSign, 
   AlertCircle, 
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck
 } from 'lucide-react';
 
 export const AuthScreen: React.FC = () => {
@@ -228,6 +229,22 @@ export const AuthScreen: React.FC = () => {
             )}
           </button>
         </form>
+
+        {/* Security & Cryptography Trust Badge */}
+        <div className="pt-3 border-t border-[#1b202e] flex items-center gap-3 bg-[#131722]/50 p-3 rounded-2xl border border-[#202638]">
+          <div className="w-8 h-8 rounded-xl bg-[#00d284]/15 border border-[#00d284]/30 flex items-center justify-center shrink-0 text-[#00d284]">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div className="text-left leading-tight">
+            <div className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
+              <span>Proteção Criptografada AES-256</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00d284] animate-pulse" />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              Seus registros, contas e lançamentos são criptografados com segurança bancária. Privacidade 100% garantida.
+            </p>
+          </div>
+        </div>
 
       </div>
 
