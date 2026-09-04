@@ -200,4 +200,47 @@ router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res: Respo
   }
 });
 
+// Change Password
+router.put('/change-password', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'A senha atual e a nova senha são obrigatórias.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'A nova senha deve ter no mínimo 6 caracteres.' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Usuário não encontrado.' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ error: 'A senha atual informada está incorreta.' });
+      return;
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { password: hashedNewPassword },
+    });
+
+    res.json({ success: true, message: 'Senha alterada com sucesso!' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Erro ao alterar a senha do usuário.' });
+  }
+});
+
 export default router;

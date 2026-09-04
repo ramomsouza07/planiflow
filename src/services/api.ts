@@ -69,6 +69,12 @@ export const api = {
         body: JSON.stringify(data),
       });
     },
+    changePassword: async (currentPassword: string, newPassword: string) => {
+      return request<{ success: boolean; message: string }>('/api/auth/change-password', {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+    },
     getSecurityStatus: async () => {
       return request<{
         status: string;

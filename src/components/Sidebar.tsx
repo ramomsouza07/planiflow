@@ -5,7 +5,6 @@ import {
   PieChart, 
   Coins,
   Settings,
-  Sliders, 
   RotateCcw,
   Receipt,
   FileDown,
@@ -44,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectView,
   isMobile = false,
 }) => {
-  const { filteredTransactions, bulkAddTransactions, clearAllTransactions, loadSampleData, transactions } = useFinance();
+  const { filteredTransactions, bulkAddTransactions, clearAllTransactions, transactions } = useFinance();
   const { user, logout } = useAuth();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -246,22 +245,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>Importar CSV</span>
           </button>
 
-          {transactions.length === 0 ? (
-            <button
-              onClick={loadSampleData}
-              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-[#141724] transition"
-            >
-              <Sliders className="w-4 h-4 text-slate-400" />
-              <span>Carregar Exemplo</span>
-            </button>
-          ) : (
+          {transactions.length > 0 && (
             <button
               onClick={() => {
                 if (window.confirm('Tem certeza que deseja limpar todos os lançamentos?')) {
                   clearAllTransactions();
                 }
               }}
-              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-[#141724] transition"
+              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-[#141724] transition cursor-pointer"
             >
               <RotateCcw className="w-4 h-4 text-slate-400" />
               <span>Limpar Dados</span>

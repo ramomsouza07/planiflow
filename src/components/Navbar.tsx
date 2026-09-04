@@ -8,7 +8,6 @@ import {
   PlusCircle, 
   Download, 
   Upload, 
-  RotateCcw,
   Calendar
 } from 'lucide-react';
 
@@ -21,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewModal }) => {
     selectedMonth, 
     setSelectedMonth, 
     bulkAddTransactions, 
-    loadSampleData,
     filteredTransactions 
   } = useFinance();
 
@@ -157,19 +155,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenNewModal }) => {
           >
             <Upload className="w-3.5 h-3.5 text-teal-400" />
             <span className="hidden sm:inline">Importar CSV</span>
-          </button>
-
-          {/* Reset Demo Data */}
-          <button
-            onClick={() => {
-              if (window.confirm('Deseja restaurar os dados de demonstração padrão?')) {
-                loadSampleData();
-              }
-            }}
-            className="p-2 text-slate-400 hover:text-amber-400 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-lg transition"
-            title="Restaurar dados de demonstração"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
           {/* New Transaction Button */}

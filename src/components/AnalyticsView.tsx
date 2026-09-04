@@ -21,7 +21,6 @@ import {
   AlertCircle, 
   ChevronLeft, 
   ChevronRight, 
-  Sliders, 
   PlusCircle, 
   Percent, 
   Wallet,
@@ -69,8 +68,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onGoToOperacoes })
     transactions, 
     monthlySummary, 
     selectedMonth, 
-    setSelectedMonth, 
-    loadSampleData 
+    setSelectedMonth 
   } = useFinance();
 
   const [viewMode, setViewMode] = useState<'month' | 'all'>('month');
@@ -311,18 +309,10 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onGoToOperacoes })
           <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
             <button
               onClick={handleActionClick}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-blue hover:bg-brand-blueHover text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-blue/20 transition active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-blue hover:bg-brand-blueHover text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-blue/20 transition active:scale-95 cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>Cadastrar Lançamento</span>
-            </button>
-
-            <button
-              onClick={loadSampleData}
-              className="flex items-center gap-2 px-4 py-2 bg-[#151926] hover:bg-[#1a2030] text-slate-300 hover:text-white border border-[#202638] rounded-xl text-xs font-semibold transition"
-            >
-              <Sliders className="w-4 h-4 text-brand-blue" />
-              <span>Carregar Dados de Exemplo</span>
             </button>
           </div>
         </div>

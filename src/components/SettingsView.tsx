@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useFinance } from '../context/FinanceContext';
 import { 
@@ -16,12 +16,15 @@ import {
   KeyRound,
   Database,
   RefreshCw,
-  Shield
+  Shield,
+  Eye,
+  EyeOff,
+  AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
 
 export const SettingsView: React.FC = () => {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout, changePassword } = useAuth();
   const { 
     categories, 
     addCategory, 
@@ -41,6 +44,32 @@ export const SettingsView: React.FC = () => {
   const [securityStatus, setSecurityStatus] = useState<any>(null);
   const [isVerifyingSecurity, setIsVerifyingSecurity] = useState(false);
   const [securityVerified, setSecurityVerified] = useState(false);
+
+  // Change Password State
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+
+  const passwordStrengthScore = useMemo(() => {
+    if (!newPassword) return 0;
+    let score = 0;
+    if (newPassword.length >= 6) score += 1;
+    if (newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword)) score += 1;
+    if (/[0-9]/.test(newPassword) || /[^A-Za-z0-9]/.test(newPassword)) score += 1;
+    return Math.min(3, Math.max(1, score));
+  }, [newPassword]);
+
+  const passwordStrength = useMemo(() => {
+    if (passwordStrengthScore >= 3) return 'Forte';
+    if (passwordStrengthScore === 2) return 'Média';
+    return 'Fraca';
+  }, [passwordStrengthScore]);
 
   // New category state
   const [newCatName, setNewCatName] = useState('');
@@ -83,6 +112,46 @@ export const SettingsView: React.FC = () => {
     });
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword) {
+      setPasswordError('Por favor, informe sua senha atual.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setPasswordError('A nova senha deve ser diferente da senha atual.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('As senhas digitadas não coincidem.');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    const res = await changePassword(currentPassword, newPassword);
+    setIsSubmittingPassword(false);
+
+    if (res.success) {
+      setPasswordSuccess(res.message || 'Senha alterada com sucesso!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(null), 4000);
+    } else {
+      setPasswordError(res.message || 'Erro ao alterar a senha.');
+    }
   };
 
   const handleAddCategory = (e: React.FormEvent) => {
@@ -257,7 +326,168 @@ export const SettingsView: React.FC = () => {
         </form>
       </div>
 
-      {/* 2. Gerenciador de Categorias */}
+      {/* 2. Segurança da Conta & Alteração de Senha */}
+      <div className="bg-[#11141e] border border-[#1d2232] rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#1b202e]">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-brand-blue" />
+              Alterar Senha de Acesso
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Atualize sua senha periodicamente para manter seus dados e transações protegidos
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#151926] border border-[#202638] text-[11px] text-slate-400 self-start sm:self-auto">
+            <Lock className="w-3.5 h-3.5 text-[#00d284]" />
+            <span>Criptografado com Bcrypt Salted</span>
+          </div>
+        </div>
+
+        {/* Feedback messages */}
+        {passwordSuccess && (
+          <div className="p-3.5 bg-[#00d284]/15 border border-[#00d284]/30 rounded-xl text-xs text-[#00d284] flex items-center gap-2 animate-fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{passwordSuccess}</span>
+          </div>
+        )}
+
+        {passwordError && (
+          <div className="p-3.5 bg-[#ff4d6a]/15 border border-[#ff4d6a]/30 rounded-xl text-xs text-[#ff4d6a] flex items-center gap-2 animate-fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="space-y-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Senha Atual */}
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Senha Atual *
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full bg-[#151926] border border-[#202638] rounded-xl pl-3.5 pr-10 py-2.5 text-white focus:outline-none focus:border-brand-blue transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  title={showCurrentPassword ? 'Ocultar senha' : 'Exibir senha'}
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Nova Senha */}
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Nova Senha *
+              </label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-[#151926] border border-[#202638] rounded-xl pl-3.5 pr-10 py-2.5 text-white focus:outline-none focus:border-brand-blue transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  title={showNewPassword ? 'Ocultar senha' : 'Exibir senha'}
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirmar Nova Senha */}
+            <div>
+              <label className="block text-slate-400 font-semibold mb-1">
+                Confirmar Nova Senha *
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Repita a nova senha"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-[#151926] border border-[#202638] rounded-xl pl-3.5 pr-10 py-2.5 text-white focus:outline-none focus:border-brand-blue transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  title={showConfirmPassword ? 'Ocultar senha' : 'Exibir senha'}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Password Strength Indicator */}
+          {newPassword && (
+            <div className="p-3 bg-[#141824] rounded-xl border border-[#202638] space-y-2 animate-fade-in">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">Força da nova senha:</span>
+                <span className={`font-bold ${
+                  passwordStrength === 'Forte' 
+                    ? 'text-[#00d284]' 
+                    : passwordStrength === 'Média' 
+                    ? 'text-amber-400' 
+                    : 'text-[#ff4d6a]'
+                }`}>
+                  {passwordStrength}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-[#1b202e] rounded-full overflow-hidden flex gap-1">
+                <div className={`h-full rounded-full flex-1 transition-all ${
+                  passwordStrengthScore >= 1 
+                    ? passwordStrengthScore === 3 ? 'bg-[#00d284]' : passwordStrengthScore === 2 ? 'bg-amber-400' : 'bg-[#ff4d6a]'
+                    : 'bg-transparent'
+                }`} />
+                <div className={`h-full rounded-full flex-1 transition-all ${
+                  passwordStrengthScore >= 2 
+                    ? passwordStrengthScore === 3 ? 'bg-[#00d284]' : 'bg-amber-400'
+                    : 'bg-transparent'
+                }`} />
+                <div className={`h-full rounded-full flex-1 transition-all ${
+                  passwordStrengthScore === 3 ? 'bg-[#00d284]' : 'bg-transparent'
+                }`} />
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <span className="text-[11px] text-slate-500">
+              * A nova senha deve conter pelo menos 6 caracteres e ser diferente da senha atual.
+            </span>
+
+            <button
+              type="submit"
+              disabled={isSubmittingPassword}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-blue hover:bg-brand-blueHover disabled:opacity-50 text-white rounded-xl font-bold shadow-lg shadow-brand-blue/25 transition active:scale-95 cursor-pointer shrink-0"
+            >
+              <KeyRound className="w-4 h-4" />
+              <span>{isSubmittingPassword ? 'Atualizando...' : 'Atualizar Senha'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 3. Gerenciador de Categorias */}
       <div className="bg-[#11141e] border border-[#1d2232] rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-[#1b202e]">
           <div>
@@ -324,7 +554,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Dados, Backup & Restauração */}
+      {/* 4. Dados, Backup & Restauração */}
       <div className="bg-[#11141e] border border-[#1d2232] rounded-2xl p-6 shadow-xl space-y-4">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Download className="w-4 h-4 text-brand-blue" />
@@ -373,7 +603,7 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Segurança, Criptografia & Privacidade dos Dados (LGPD) */}
+      {/* 5. Segurança, Criptografia & Privacidade dos Dados (LGPD) */}
       <div className="bg-[#11141e] border border-[#1d2232] rounded-2xl p-6 shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#1b202e]">
           <div>

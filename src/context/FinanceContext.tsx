@@ -12,12 +12,6 @@ import type {
   FinancialHealthScore
 } from '../types/finance';
 import { DEFAULT_CATEGORIES } from '../types/finance';
-import { 
-  SAMPLE_DEMO_TRANSACTIONS, 
-  SAMPLE_DEMO_CARDS, 
-  SAMPLE_DEMO_GOALS, 
-  SAMPLE_DEMO_BILLS 
-} from '../utils/initialData';
 import { getCurrentMonth } from '../utils/formatters';
 import { calculateFinancialScore } from '../utils/scoreCalculator';
 import { api, getToken } from '../services/api';
@@ -103,28 +97,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [creditCards, setCreditCards] = useState<CreditCard[]>(() => {
     try {
-      const saved = localStorage.getItem('finflow_cards_guest');
-      return saved ? JSON.parse(saved) : SAMPLE_DEMO_CARDS;
+      const saved = localStorage.getItem(cardsStorageKey);
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SAMPLE_DEMO_CARDS;
+      return [];
     }
   });
 
   const [goals, setGoals] = useState<FinancialGoal[]>(() => {
     try {
-      const saved = localStorage.getItem('finflow_goals_guest');
-      return saved ? JSON.parse(saved) : SAMPLE_DEMO_GOALS;
+      const saved = localStorage.getItem(goalsStorageKey);
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SAMPLE_DEMO_GOALS;
+      return [];
     }
   });
 
   const [recurringBills, setRecurringBills] = useState<RecurringBill[]>(() => {
     try {
-      const saved = localStorage.getItem('finflow_bills_guest');
-      return saved ? JSON.parse(saved) : SAMPLE_DEMO_BILLS;
+      const saved = localStorage.getItem(billsStorageKey);
+      return saved ? JSON.parse(saved) : [];
     } catch {
-      return SAMPLE_DEMO_BILLS;
+      return [];
     }
   });
 
@@ -132,20 +126,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     try {
       const savedCards = localStorage.getItem(cardsStorageKey);
-      if (savedCards) setCreditCards(JSON.parse(savedCards));
-      else if (!user) setCreditCards(SAMPLE_DEMO_CARDS);
+      setCreditCards(savedCards ? JSON.parse(savedCards) : []);
 
       const savedGoals = localStorage.getItem(goalsStorageKey);
-      if (savedGoals) setGoals(JSON.parse(savedGoals));
-      else if (!user) setGoals(SAMPLE_DEMO_GOALS);
+      setGoals(savedGoals ? JSON.parse(savedGoals) : []);
 
       const savedBills = localStorage.getItem(billsStorageKey);
-      if (savedBills) setRecurringBills(JSON.parse(savedBills));
-      else if (!user) setRecurringBills(SAMPLE_DEMO_BILLS);
+      setRecurringBills(savedBills ? JSON.parse(savedBills) : []);
     } catch (e) {
       console.warn('Error reading stored cards/goals/bills:', e);
+      setCreditCards([]);
+      setGoals([]);
+      setRecurringBills([]);
     }
-  }, [cardsStorageKey, goalsStorageKey, billsStorageKey, user]);
+  }, [cardsStorageKey, goalsStorageKey, billsStorageKey]);
 
   // Persist mutations
   useEffect(() => {
@@ -289,14 +283,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const loadSampleData = async () => {
-    try {
-      await bulkAddTransactions(SAMPLE_DEMO_TRANSACTIONS);
-      setCreditCards(SAMPLE_DEMO_CARDS);
-      setGoals(SAMPLE_DEMO_GOALS);
-      setRecurringBills(SAMPLE_DEMO_BILLS);
-    } catch {
-      // ignore
-    }
+    // Perfil criado totalmente vazio por padrão
   };
 
   // 1. Credit Cards mutations

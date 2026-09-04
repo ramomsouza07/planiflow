@@ -7,6 +7,7 @@ interface AuthContextType extends AuthState {
   register: (name: string, email: string, password: string, income?: number) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -99,6 +100,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await api.auth.changePassword(currentPassword, newPassword);
+      return { success: true, message: res.message || 'Senha alterada com sucesso!' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Erro ao alterar a senha.' };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -109,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateProfile,
+        changePassword,
       }}
     >
       {children}
