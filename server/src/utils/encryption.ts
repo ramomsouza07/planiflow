@@ -5,18 +5,19 @@ import crypto from 'crypto';
 const ENCRYPTION_SECRET = 
   process.env.ENCRYPTION_KEY || 
   process.env.JWT_SECRET || 
-  'planiflow_secure_encryption_key_2026_aes256_military_grade';
+  'planiflow_super_seguro_jwt_2026_isolated';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // 96-bit IV recommended for GCM
 const PREFIX = 'enc:v1:';
+const DET_PREFIX = 'enc:v1:det:';
 
 function getEncryptionKey(): Buffer {
   return crypto.createHash('sha256').update(ENCRYPTION_SECRET).digest();
 }
 
 /**
- * Encrypts a plaintext string using AES-256-GCM.
+ * Encrypts a plaintext string using AES-256-GCM with a random IV.
  * Output format: enc:v1:<iv_hex>:<authTag_hex>:<cipherText_hex>
  */
 export function encryptText(text: string | null | undefined): string {
@@ -49,8 +50,51 @@ export function encryptText(text: string | null | undefined): string {
 }
 
 /**
+ * Deterministically encrypts text (e.g. email) using AES-256-GCM so the same input
+ * always produces the exact same ciphertext under the secret key.
+ * Allows unique indexing and database lookups (e.g. findUnique({ where: { email } })).
+ * Output format: enc:v1:det:<iv_hex>:<authTag_hex>:<cipherText_hex>
+ */
+export function encryptDeterministic(text: string | null | undefined): string {
+  if (text === null || text === undefined) {
+    return text as any;
+  }
+  const str = String(text).trim().toLowerCase();
+  if (!str) return str;
+
+  if (str.startsWith(PREFIX)) {
+    return str;
+  }
+
+  try {
+    const key = getEncryptionKey();
+    const iv = crypto.createHmac('sha256', key).update(`det-iv:${str}`).digest().subarray(0, IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+
+    let encrypted = cipher.update(str, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+
+    const authTag = cipher.getAuthTag();
+
+    return `${DET_PREFIX}${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
+  } catch (err) {
+    console.error('Deterministic encryption failed:', err);
+    return str;
+  }
+}
+
+export function encryptEmail(email: string | null | undefined): string {
+  return encryptDeterministic(email);
+}
+
+export function decryptEmail(email: string | null | undefined): string {
+  return decryptText(email);
+}
+
+/**
  * Decrypts a ciphertext string encrypted with AES-256-GCM.
- * If the string does not start with enc:v1:, returns it as-is (backward compatible with unencrypted legacy data).
+ * Supports both probabilistic (enc:v1:<iv>:<tag>:<cipher>) and deterministic (enc:v1:det:<iv>:<tag>:<cipher>).
+ * If the string does not start with enc:v1:, returns it as-is (backward compatible with legacy data).
  */
 export function decryptText(encryptedText: string | null | undefined): string {
   if (encryptedText === null || encryptedText === undefined) {
@@ -66,13 +110,21 @@ export function decryptText(encryptedText: string | null | undefined): string {
 
   try {
     const parts = str.split(':');
-    if (parts.length !== 5) {
-      return str;
-    }
+    let iv: Buffer;
+    let authTag: Buffer;
+    let ciphertext: string;
 
-    const iv = Buffer.from(parts[2], 'hex');
-    const authTag = Buffer.from(parts[3], 'hex');
-    const ciphertext = parts[4];
+    if (parts[2] === 'det') {
+      if (parts.length !== 6) return str;
+      iv = Buffer.from(parts[3], 'hex');
+      authTag = Buffer.from(parts[4], 'hex');
+      ciphertext = parts[5];
+    } else {
+      if (parts.length !== 5) return str;
+      iv = Buffer.from(parts[2], 'hex');
+      authTag = Buffer.from(parts[3], 'hex');
+      ciphertext = parts[4];
+    }
 
     const key = getEncryptionKey();
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
@@ -172,6 +224,9 @@ export function encryptUserData<T extends Record<string, any>>(data: T): T {
   if (result.name !== undefined && result.name !== null) {
     result.name = encryptText(String(result.name));
   }
+  if (result.email !== undefined && result.email !== null) {
+    result.email = encryptEmail(String(result.email));
+  }
   return result;
 }
 
@@ -180,6 +235,9 @@ export function decryptUser<T extends Record<string, any>>(user: T): T {
   const result: any = { ...user };
   if (result.name) {
     result.name = decryptText(result.name);
+  }
+  if (result.email) {
+    result.email = decryptText(result.email);
   }
   return result;
 }

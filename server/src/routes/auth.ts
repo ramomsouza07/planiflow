@@ -5,12 +5,14 @@ import { prisma } from '../prisma';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 import { 
   encryptText, 
+  encryptEmail,
+  decryptText,
   decryptUser, 
   getSecurityStatus 
 } from '../utils/encryption';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'finflow_secure_jwt_secret_token_2026_isolated';
+const JWT_SECRET = process.env.JWT_SECRET || 'planiflow_super_seguro_jwt_2026_isolated';
 
 // Security status endpoint to verify encryption health
 router.get('/security-status', (_req, res): void => {
@@ -28,8 +30,16 @@ router.post('/register', async (req, res): Promise<void> => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existingUser = await prisma.user.findUnique({
-      where: { email: cleanEmail },
+    const encEmail = encryptEmail(cleanEmail);
+
+    // Check by encrypted email or plaintext legacy
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: encEmail },
+          { email: cleanEmail },
+        ],
+      },
     });
 
     if (existingUser) {
@@ -43,7 +53,7 @@ router.post('/register', async (req, res): Promise<void> => {
     const user = await prisma.user.create({
       data: {
         name: encryptedName,
-        email: cleanEmail,
+        email: encEmail,
         password: hashedPassword,
         emergencyFund: {
           create: {
@@ -62,7 +72,7 @@ router.post('/register', async (req, res): Promise<void> => {
     });
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: decryptText(user.email) },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -89,9 +99,30 @@ router.post('/login', async (req, res): Promise<void> => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const user = await prisma.user.findUnique({
-      where: { email: cleanEmail },
+    const encEmail = encryptEmail(cleanEmail);
+
+    // Look for user by deterministic encrypted email first
+    let user = await prisma.user.findUnique({
+      where: { email: encEmail },
     });
+
+    // Fallback for unmigrated legacy plain email
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+      });
+
+      // Seamlessly upgrade legacy user to encrypted email & name
+      if (user) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: encEmail,
+            name: encryptText(user.name),
+          },
+        });
+      }
+    }
 
     if (!user) {
       res.status(401).json({ error: 'E-mail ou senha incorretos.' });
@@ -105,7 +136,7 @@ router.post('/login', async (req, res): Promise<void> => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: decryptText(user.email) },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
