@@ -16,7 +16,6 @@ model User {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   transactions Transaction[]
-  categories   Category[]
   investments  InvestmentAsset[]
   emergencyFund EmergencyFund?
 
@@ -41,22 +40,6 @@ model Transaction {
   @@index([userId])
   @@index([userId, date])
   @@map("transactions")
-}
-
-model Category {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  type      String   // "income" | "expense"
-  color     String
-  icon      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, name, type])
-  @@index([userId])
-  @@map("categories")
 }
 
 model InvestmentAsset {

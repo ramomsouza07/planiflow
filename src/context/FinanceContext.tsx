@@ -36,6 +36,7 @@ interface FinanceContextType {
   filteredTransactions: Transaction[];
   availableMonths: string[];
   addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   addInvestment: (asset: Omit<InvestmentAsset, 'id' | 'updatedAt'>) => Promise<void>;
   updateInvestment: (id: string, asset: Partial<InvestmentAsset>) => Promise<void>;
   deleteInvestment: (id: string) => Promise<void>;
@@ -85,7 +86,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [investments, setInvestments] = useState<InvestmentAsset[]>([]);
   const [emergencyFund, setEmergencyFund] = useState<EmergencyFundConfig>(DEFAULT_EMERGENCY_FUND);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
@@ -94,6 +94,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const cardsStorageKey = useMemo(() => user ? `finflow_cards_${user.id}` : 'finflow_cards_guest', [user]);
   const goalsStorageKey = useMemo(() => user ? `finflow_goals_${user.id}` : 'finflow_goals_guest', [user]);
   const billsStorageKey = useMemo(() => user ? `finflow_bills_${user.id}` : 'finflow_bills_guest', [user]);
+  const customCategoriesStorageKey = useMemo(() => user ? `finflow_custom_categories_${user.id}` : 'finflow_custom_categories_guest', [user]);
 
   const [creditCards, setCreditCards] = useState<CreditCard[]>(() => {
     try {
@@ -122,6 +123,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   });
 
+  const [customCategories, setCustomCategories] = useState<Category[]>(() => {
+    try {
+      const saved = localStorage.getItem(customCategoriesStorageKey);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Rehydrate on user change
   useEffect(() => {
     try {
@@ -133,13 +143,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       const savedBills = localStorage.getItem(billsStorageKey);
       setRecurringBills(savedBills ? JSON.parse(savedBills) : []);
+
+      const savedCats = localStorage.getItem(customCategoriesStorageKey);
+      setCustomCategories(savedCats ? JSON.parse(savedCats) : []);
     } catch (e) {
-      console.warn('Error reading stored cards/goals/bills:', e);
+      console.warn('Error reading stored cards/goals/bills/categories:', e);
       setCreditCards([]);
       setGoals([]);
       setRecurringBills([]);
+      setCustomCategories([]);
     }
-  }, [cardsStorageKey, goalsStorageKey, billsStorageKey]);
+  }, [cardsStorageKey, goalsStorageKey, billsStorageKey, customCategoriesStorageKey]);
 
   // Persist mutations
   useEffect(() => {
@@ -159,6 +173,17 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem(billsStorageKey, JSON.stringify(recurringBills));
     } catch {}
   }, [recurringBills, billsStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(customCategoriesStorageKey, JSON.stringify(customCategories));
+    } catch {}
+  }, [customCategories, customCategoriesStorageKey]);
+
+  // Combined categories: standard system defaults + user custom categories
+  const categories = useMemo(() => {
+    return [...DEFAULT_CATEGORIES, ...customCategories];
+  }, [customCategories]);
 
   const [selectedMonth, setSelectedMonth] = useState<string>(() => getCurrentMonth());
 
@@ -180,7 +205,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const token = getToken();
     if (!token || !user) {
       setTransactions([]);
-      setCategories(DEFAULT_CATEGORIES);
       setInvestments([]);
       setEmergencyFund(DEFAULT_EMERGENCY_FUND);
       return;
@@ -188,17 +212,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setIsLoadingData(true);
     try {
-      const [txRes, catRes, invRes, efRes] = await Promise.all([
+      const [txRes, invRes, efRes] = await Promise.all([
         api.transactions.getAll().catch(() => ({ transactions: [] })),
-        api.categories.getAll().catch(() => ({ categories: DEFAULT_CATEGORIES })),
         api.investments.getAll().catch(() => ({ investments: [] })),
         api.emergencyFund.get().catch(() => ({ emergencyFund: DEFAULT_EMERGENCY_FUND })),
       ]);
 
       setTransactions(txRes.transactions || []);
-      if (catRes.categories && catRes.categories.length > 0) {
-        setCategories(catRes.categories);
-      }
       setInvestments(invRes.investments || []);
       if (efRes.emergencyFund) {
         setEmergencyFund(efRes.emergencyFund);
@@ -426,20 +446,28 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  // Category mutations
+  // Category mutations (manage custom user-created categories)
   const addCategory = async (category: Omit<Category, 'id'>) => {
-    try {
-      const res = await api.categories.create(category);
-      if (res.category) {
-        setCategories(prev => [...prev, res.category]);
-      }
-    } catch {
-      const newCat: Category = {
-        ...category,
-        id: `cat-${Date.now()}`,
-      };
-      setCategories(prev => [...prev, newCat]);
-    }
+    const cleanName = category.name.trim();
+    if (!cleanName) return;
+
+    // Check if category already exists in default or custom categories
+    const exists = categories.some(
+      c => c.name.toLowerCase() === cleanName.toLowerCase() && c.type === category.type
+    );
+    if (exists) return;
+
+    const newCat: Category = {
+      ...category,
+      name: cleanName,
+      id: `custom-${Date.now()}`,
+    };
+
+    setCustomCategories(prev => [...prev, newCat]);
+  };
+
+  const deleteCategory = async (id: string) => {
+    setCustomCategories(prev => prev.filter(c => c.id !== id));
   };
 
   // Investment mutations
@@ -584,6 +612,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         filteredTransactions,
         availableMonths,
         addCategory,
+        deleteCategory,
         addInvestment,
         updateInvestment,
         deleteInvestment,

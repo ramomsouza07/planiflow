@@ -19,7 +19,8 @@ import {
   Shield,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -28,6 +29,7 @@ export const SettingsView: React.FC = () => {
   const { 
     categories, 
     addCategory, 
+    deleteCategory,
     transactions, 
     investments, 
     emergencyFund, 
@@ -541,16 +543,31 @@ export const SettingsView: React.FC = () => {
 
         {/* Categories Chips */}
         <div className="flex flex-wrap gap-2 pt-2 max-h-48 overflow-y-auto">
-          {categories.map((c) => (
-            <div
-              key={c.id}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-[#151926] border border-[#202638]"
-            >
-              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-              <span className="text-slate-200">{c.name}</span>
-              <span className="text-[10px] text-slate-500 uppercase">({c.type === 'income' ? 'Entrada' : 'Saída'})</span>
-            </div>
-          ))}
+          {categories.map((c) => {
+            const isCustom = c.id.startsWith('custom-');
+            return (
+              <div
+                key={c.id}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-[#151926] border border-[#202638]"
+              >
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                <span className="text-slate-200">{c.name}</span>
+                <span className="text-[10px] text-slate-500 uppercase">
+                  ({c.type === 'income' ? 'Entrada' : 'Saída'}{!isCustom ? ' • Padrão' : ''})
+                </span>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => deleteCategory(c.id)}
+                    className="text-slate-500 hover:text-red-400 ml-1 transition"
+                    title="Excluir categoria personalizada"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

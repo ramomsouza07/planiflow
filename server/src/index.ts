@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import transactionRoutes from './routes/transactions';
-import categoryRoutes from './routes/categories';
 import investmentRoutes from './routes/investments';
 import emergencyFundRoutes from './routes/emergencyFund';
 import { prisma } from './prisma';
@@ -29,7 +28,6 @@ app.use(express.json());
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/categories', categoryRoutes);
 app.use('/api/investments', investmentRoutes);
 app.use('/api/emergency-fund', emergencyFundRoutes);
 

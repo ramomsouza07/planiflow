@@ -80,23 +80,23 @@ export interface EmergencyFundConfig {
 
 export const DEFAULT_CATEGORIES: Category[] = [
   // Entradas
-  { id: 'salario', name: 'Salário', type: 'income', color: '#10B981', icon: 'Briefcase' },
-  { id: 'freelance', name: 'Freelance & Bicos', type: 'income', color: '#06B6D4', icon: 'Laptop' },
-  { id: 'investimentos-in', name: 'Rendimentos & Dividendos', type: 'income', color: '#8B5CF6', icon: 'TrendingUp' },
-  { id: 'vendas', name: 'Vendas & Reembolsos', type: 'income', color: '#F59E0B', icon: 'Tag' },
-  { id: 'outras-entradas', name: 'Outras Entradas', type: 'income', color: '#64748B', icon: 'PlusCircle' },
+  { id: 'salario', name: 'Salário & Renda Fixa', type: 'income', color: '#00d284', icon: 'Briefcase' },
+  { id: 'freelance', name: 'Freelance & Projetos', type: 'income', color: '#10b981', icon: 'Laptop' },
+  { id: 'investimentos-in', name: 'Rendimentos & Dividendos', type: 'income', color: '#34d399', icon: 'TrendingUp' },
+  { id: 'vendas', name: 'Vendas & Reembolsos', type: 'income', color: '#f59e0b', icon: 'Tag' },
+  { id: 'outras-entradas', name: 'Outras Entradas', type: 'income', color: '#059669', icon: 'Wallet' },
 
   // Saídas
-  { id: 'moradia', name: 'Moradia (Aluguel, Contas)', type: 'expense', color: '#EF4444', icon: 'Home' },
-  { id: 'alimentacao', name: 'Alimentação & Mercado', type: 'expense', color: '#F97316', icon: 'Utensils' },
-  { id: 'transporte', name: 'Transporte & Combustível', type: 'expense', color: '#EAB308', icon: 'Car' },
-  { id: 'saude', name: 'Saúde & Farmácia', type: 'expense', color: '#EC4899', icon: 'HeartPulse' },
-  { id: 'lazer', name: 'Lazer & Entretenimento', type: 'expense', color: '#3B82F6', icon: 'Film' },
-  { id: 'educacao', name: 'Educação & Cursos', type: 'expense', color: '#6366F1', icon: 'GraduationCap' },
-  { id: 'assinaturas', name: 'Assinaturas & Serviços', type: 'expense', color: '#14B8A6', icon: 'CreditCard' },
-  { id: 'compras', name: 'Compras Pessoais', type: 'expense', color: '#A855F7', icon: 'ShoppingBag' },
-  { id: 'investimentos-aportes', name: 'Aporte Investimentos / Reserva', type: 'expense', color: '#0066FF', icon: 'PiggyBank' },
-  { id: 'outras-saidas', name: 'Outras Saídas', type: 'expense', color: '#94A3B8', icon: 'MinusCircle' },
+  { id: 'moradia', name: 'Moradia & Aluguel', type: 'expense', color: '#ffa800', icon: 'Home' },
+  { id: 'alimentacao', name: 'Alimentação & Supermercado', type: 'expense', color: '#ff4d6a', icon: 'Utensils' },
+  { id: 'transporte', name: 'Transporte & Combustível', type: 'expense', color: '#00c4df', icon: 'Car' },
+  { id: 'saude', name: 'Saúde & Farmácia', type: 'expense', color: '#9b51e0', icon: 'HeartPulse' },
+  { id: 'lazer', name: 'Lazer & Entretenimento', type: 'expense', color: '#0066ff', icon: 'Film' },
+  { id: 'educacao', name: 'Educação & Cursos', type: 'expense', color: '#60a5fa', icon: 'GraduationCap' },
+  { id: 'assinaturas', name: 'Assinaturas & Serviços', type: 'expense', color: '#14b8a6', icon: 'CreditCard' },
+  { id: 'compras', name: 'Compras Pessoais', type: 'expense', color: '#a855f7', icon: 'ShoppingBag' },
+  { id: 'investimentos-aportes', name: 'Aporte Investimentos / Reserva', type: 'expense', color: '#3b82f6', icon: 'PiggyBank' },
+  { id: 'outras-despesas', name: 'Outras Despesas', type: 'expense', color: '#64748b', icon: 'MinusCircle' },
 ];
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {

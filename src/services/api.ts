@@ -124,20 +124,9 @@ export const api = {
   },
 
   categories: {
-    getAll: async () => {
-      return request<{ categories: Category[] }>('/api/categories');
-    },
-    create: async (data: Omit<Category, 'id'>) => {
-      return request<{ category: Category }>('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-    delete: async (id: string) => {
-      return request<{ message: string }>(`/api/categories/${id}`, {
-        method: 'DELETE',
-      });
-    },
+    getAll: async () => ({ categories: [] }),
+    create: async (data: Omit<Category, 'id'>) => ({ category: { ...data, id: `custom-${Date.now()}` } }),
+    delete: async (_id: string) => ({ message: 'ok' }),
   },
 
   investments: {

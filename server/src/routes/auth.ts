@@ -12,20 +12,6 @@ import {
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'finflow_secure_jwt_secret_token_2026_isolated';
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Alimentação & Supermercado', type: 'expense', color: '#ff4d6a', icon: 'Utensils' },
-  { name: 'Moradia & Aluguel', type: 'expense', color: '#ffa800', icon: 'Home' },
-  { name: 'Transporte & Combustível', type: 'expense', color: '#00c4df', icon: 'Car' },
-  { name: 'Saúde & Farmácia', type: 'expense', color: '#9b51e0', icon: 'HeartPulse' },
-  { name: 'Lazer & Entretenimento', type: 'expense', color: '#0066ff', icon: 'Film' },
-  { name: 'Educação & Cursos', type: 'expense', color: '#60a5fa', icon: 'GraduationCap' },
-  { name: 'Outras Despesas', type: 'expense', color: '#64748b', icon: 'Tag' },
-  { name: 'Salário & Renda Fixa', type: 'income', color: '#00d284', icon: 'Briefcase' },
-  { name: 'Freelance & Projetos', type: 'income', color: '#10b981', icon: 'Laptop' },
-  { name: 'Rendimentos & Dividendos', type: 'income', color: '#34d399', icon: 'TrendingUp' },
-  { name: 'Outras Entradas', type: 'income', color: '#059669', icon: 'Wallet' },
-];
-
 // Security status endpoint to verify encryption health
 router.get('/security-status', (_req, res): void => {
   res.json(getSecurityStatus());
@@ -59,14 +45,6 @@ router.post('/register', async (req, res): Promise<void> => {
         name: encryptedName,
         email: cleanEmail,
         password: hashedPassword,
-        categories: {
-          create: DEFAULT_CATEGORIES.map(cat => ({
-            name: cat.name,
-            type: cat.type,
-            color: cat.color,
-            icon: cat.icon,
-          })),
-        },
         emergencyFund: {
           create: {
             targetMonths: 6,
