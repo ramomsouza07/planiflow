@@ -6,7 +6,11 @@ export interface AuthenticatedRequest extends Request {
   userEmail?: string;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'finflow_secure_jwt_secret_token_2026_isolated';
+const JWT_SECRETS = [
+  process.env.JWT_SECRET,
+  'planiflow_super_seguro_jwt_2026_isolated',
+  'finflow_secure_jwt_secret_token_2026_isolated',
+].filter(Boolean) as string[];
 
 export const requireAuth = (
   req: AuthenticatedRequest,
@@ -22,16 +26,25 @@ export const requireAuth = (
 
   const token = authHeader.split(' ')[1];
 
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as {
-      userId: string;
-      email?: string;
-    };
-
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido ou expirado.' });
+  let decoded: { userId: string; email?: string } | null = null;
+  for (const secret of JWT_SECRETS) {
+    try {
+      decoded = jwt.verify(token, secret) as {
+        userId: string;
+        email?: string;
+      };
+      break;
+    } catch {
+      // Continue trying candidate secrets
+    }
   }
+
+  if (!decoded) {
+    res.status(401).json({ error: 'Token inválido ou expirado.' });
+    return;
+  }
+
+  req.userId = decoded.userId;
+  req.userEmail = decoded.email;
+  next();
 };

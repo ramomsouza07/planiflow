@@ -46,7 +46,7 @@ const distPath = path.resolve(__dirname, '../../dist');
 app.use(express.static(distPath));
 
 // Fallback to React index.html for SPA routing in production
-app.use((req, res, next) => {
+app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     res.status(404).json({ error: 'Rota da API não encontrada.' });
     return;

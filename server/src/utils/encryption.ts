@@ -1,39 +1,56 @@
 import crypto from 'crypto';
 
-// Encryption Secret Key
-// Uses ENCRYPTION_KEY if provided, falls back to JWT_SECRET or secure default, hashed to 32 bytes (256 bits)
-const ENCRYPTION_SECRET = 
-  process.env.ENCRYPTION_KEY || 
-  process.env.JWT_SECRET || 
-  'planiflow_super_seguro_jwt_2026_isolated';
+// Primary Encryption Secret Key
+// Defaults to the isolated planiflow key, or explicit ENCRYPTION_KEY env var.
+// Note: We do NOT let dynamic JWT_SECRET override this to prevent deployment key-drift.
+const DEFAULT_ENCRYPTION_SECRET = 'planiflow_super_seguro_jwt_2026_isolated';
+
+export function getPrimarySecret(): string {
+  return process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_SECRET;
+}
+
+/**
+ * Returns all historical and environment candidate secrets so data encrypted
+ * under any previous key or environment configuration can always be decrypted.
+ */
+export function getCandidateSecrets(): string[] {
+  const list = [
+    process.env.ENCRYPTION_KEY,
+    DEFAULT_ENCRYPTION_SECRET,
+    'planiflow_secure_encryption_key_2026_aes256_military_grade',
+    process.env.JWT_SECRET,
+    'finflow_secure_jwt_secret_token_2026_isolated',
+  ];
+  return Array.from(new Set(list.filter(Boolean))) as string[];
+}
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12; // 96-bit IV recommended for GCM
 const PREFIX = 'enc:v1:';
 const DET_PREFIX = 'enc:v1:det:';
 
-function getEncryptionKey(): Buffer {
-  return crypto.createHash('sha256').update(ENCRYPTION_SECRET).digest();
+export function getEncryptionKey(secret: string = getPrimarySecret()): Buffer {
+  return crypto.createHash('sha256').update(secret).digest();
 }
 
 /**
  * Encrypts a plaintext string using AES-256-GCM with a random IV.
  * Output format: enc:v1:<iv_hex>:<authTag_hex>:<cipherText_hex>
  */
-export function encryptText(text: string | null | undefined): string {
+export function encryptText(text: string | null | undefined, secret: string = getPrimarySecret()): string {
   if (text === null || text === undefined) {
     return text as any;
   }
-  const str = String(text);
+  let str = String(text);
   if (!str) return str;
 
-  // Avoid re-encrypting already encrypted strings
+  // If already encrypted, decrypt it first so we don't double-encrypt
   if (str.startsWith(PREFIX)) {
-    return str;
+    str = decryptText(str);
   }
 
   try {
-    const key = getEncryptionKey();
+    const key = getEncryptionKey(secret);
     const iv = crypto.randomBytes(IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
@@ -55,19 +72,20 @@ export function encryptText(text: string | null | undefined): string {
  * Allows unique indexing and database lookups (e.g. findUnique({ where: { email } })).
  * Output format: enc:v1:det:<iv_hex>:<authTag_hex>:<cipherText_hex>
  */
-export function encryptDeterministic(text: string | null | undefined): string {
+export function encryptDeterministic(text: string | null | undefined, secret: string = getPrimarySecret()): string {
   if (text === null || text === undefined) {
     return text as any;
   }
-  const str = String(text).trim().toLowerCase();
+  let str = String(text).trim().toLowerCase();
   if (!str) return str;
 
+  // If already encrypted, decrypt it first so we re-encrypt with target secret
   if (str.startsWith(PREFIX)) {
-    return str;
+    str = decryptText(str).trim().toLowerCase();
   }
 
   try {
-    const key = getEncryptionKey();
+    const key = getEncryptionKey(secret);
     const iv = crypto.createHmac('sha256', key).update(`det-iv:${str}`).digest().subarray(0, IV_LENGTH);
     const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
 
@@ -83,8 +101,8 @@ export function encryptDeterministic(text: string | null | undefined): string {
   }
 }
 
-export function encryptEmail(email: string | null | undefined): string {
-  return encryptDeterministic(email);
+export function encryptEmail(email: string | null | undefined, secret: string = getPrimarySecret()): string {
+  return encryptDeterministic(email, secret);
 }
 
 export function decryptEmail(email: string | null | undefined): string {
@@ -92,18 +110,9 @@ export function decryptEmail(email: string | null | undefined): string {
 }
 
 /**
- * Decrypts a ciphertext string encrypted with AES-256-GCM.
- * Supports both probabilistic (enc:v1:<iv>:<tag>:<cipher>) and deterministic (enc:v1:det:<iv>:<tag>:<cipher>).
- * If the string does not start with enc:v1:, returns it as-is (backward compatible with legacy data).
+ * Attempts to decrypt a single chunk against all candidate secrets.
  */
-export function decryptText(encryptedText: string | null | undefined): string {
-  if (encryptedText === null || encryptedText === undefined) {
-    return encryptedText as any;
-  }
-  const str = String(encryptedText);
-  if (!str) return str;
-
-  // Not encrypted, return plain text
+function decryptSingleChunk(str: string): string {
   if (!str.startsWith(PREFIX)) {
     return str;
   }
@@ -126,18 +135,53 @@ export function decryptText(encryptedText: string | null | undefined): string {
       ciphertext = parts[4];
     }
 
-    const key = getEncryptionKey();
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
+    const secrets = getCandidateSecrets();
+    for (const candidateSecret of secrets) {
+      try {
+        const key = getEncryptionKey(candidateSecret);
+        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+        decipher.setAuthTag(authTag);
 
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+        let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
 
-    return decrypted;
-  } catch (err) {
-    console.warn('Decryption failed, returning raw string:', err);
+        return decrypted;
+      } catch {
+        // Candidate key mismatch, try next candidate
+      }
+    }
+  } catch {
+    // Malformed chunk
+  }
+
+  return str;
+}
+
+/**
+ * Decrypts a ciphertext string encrypted with AES-256-GCM.
+ * Supports both probabilistic (enc:v1:<iv>:<tag>:<cipher>) and deterministic (enc:v1:det:<iv>:<tag>:<cipher>).
+ * Handles candidate secret fallbacks and nested encryption unwrapping.
+ * If the string does not start with enc:v1:, returns it as-is (backward compatible with legacy data).
+ */
+export function decryptText(encryptedText: string | null | undefined): string {
+  if (encryptedText === null || encryptedText === undefined) {
+    return encryptedText as any;
+  }
+  let str = String(encryptedText);
+  if (!str || !str.startsWith(PREFIX)) {
     return str;
   }
+
+  // Handle potential nested encryption unwrapping (up to 3 levels)
+  let attempts = 0;
+  while (str.startsWith(PREFIX) && attempts < 3) {
+    attempts++;
+    const next = decryptSingleChunk(str);
+    if (next === str) break;
+    str = next;
+  }
+
+  return str;
 }
 
 // Helpers for Transactions
@@ -235,9 +279,17 @@ export function decryptUser<T extends Record<string, any>>(user: T): T {
   const result: any = { ...user };
   if (result.name) {
     result.name = decryptText(result.name);
+    // Security check: if decryption still starts with prefix (e.g. unknown key), fallback to human-readable placeholder
+    if (typeof result.name === 'string' && result.name.startsWith(PREFIX)) {
+      result.name = 'Investidor';
+    }
   }
   if (result.email) {
     result.email = decryptText(result.email);
+    // Security check: if decryption still starts with prefix, fallback to empty string
+    if (typeof result.email === 'string' && result.email.startsWith(PREFIX)) {
+      result.email = '';
+    }
   }
   return result;
 }

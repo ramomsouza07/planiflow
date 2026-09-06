@@ -63,7 +63,7 @@ export const api = {
     me: async () => {
       return request<{ user: { id: string; name: string; email: string } }>('/api/auth/me');
     },
-    updateProfile: async (data: { name?: string }) => {
+    updateProfile: async (data: { name?: string; email?: string }) => {
       return request<{ user: { id: string; name: string; email: string } }>('/api/auth/profile', {
         method: 'PUT',
         body: JSON.stringify(data),

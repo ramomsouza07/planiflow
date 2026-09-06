@@ -12,6 +12,18 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const sanitizeUser = (rawUser: any): User | null => {
+  if (!rawUser) return null;
+  const isEnc = (v?: string) => typeof v === 'string' && v.startsWith('enc:v1:');
+  return {
+    ...rawUser,
+    name: isEnc(rawUser.name) ? 'Investidor' : (rawUser.name || 'Investidor'),
+    email: isEnc(rawUser.email) ? '' : (rawUser.email || ''),
+    preferredCurrency: rawUser.preferredCurrency || 'BRL',
+    savingsGoalPercentage: rawUser.savingsGoalPercentage || 20,
+  };
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -27,11 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const data = await api.auth.me();
-        setUser({
-          ...data.user,
-          preferredCurrency: 'BRL',
-          savingsGoalPercentage: 20,
-        });
+        setUser(sanitizeUser(data.user));
       } catch (err) {
         console.warn('Sessão expirada ou inválida:', err);
         clearToken();
@@ -49,11 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await api.auth.login(email, password);
       setToken(res.token);
-      setUser({
-        ...res.user,
-        preferredCurrency: 'BRL',
-        savingsGoalPercentage: 20,
-      });
+      setUser(sanitizeUser(res.user));
       setIsLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -67,11 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await api.auth.register(name, email, password);
       setToken(res.token);
-      setUser({
-        ...res.user,
-        preferredCurrency: 'BRL',
-        savingsGoalPercentage: 20,
-      });
+      setUser(sanitizeUser(res.user));
       setIsLoading(false);
       return { success: true };
     } catch (err: any) {
@@ -87,15 +87,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: Partial<User>) => {
     if (!user) return;
-    setUser(prev => prev ? { ...prev, ...data } : null);
-    if (data.name) {
+    setUser(prev => prev ? sanitizeUser({ ...prev, ...data }) : null);
+    if (data.name || data.email) {
       try {
-        const res = await api.auth.updateProfile({ name: data.name });
+        const payload: { name?: string; email?: string } = {};
+        if (data.name) payload.name = data.name;
+        if (data.email) payload.email = data.email;
+        const res = await api.auth.updateProfile(payload);
         if (res?.user) {
-          setUser(prev => prev ? { ...prev, name: res.user.name } : null);
+          setUser(prev => prev ? sanitizeUser({ ...prev, ...res.user }) : null);
         }
       } catch (err) {
-        console.warn('Erro ao sincronizar perfil cifrado com servidor:', err);
+        console.warn('Erro ao sincronizar perfil com servidor:', err);
       }
     }
   };

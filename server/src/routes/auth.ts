@@ -8,7 +8,9 @@ import {
   encryptEmail,
   decryptText,
   decryptUser, 
-  getSecurityStatus 
+  getSecurityStatus,
+  getCandidateSecrets,
+  encryptDeterministic,
 } from '../utils/encryption';
 
 const router = Router();
@@ -30,13 +32,13 @@ router.post('/register', async (req, res): Promise<void> => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const encEmail = encryptEmail(cleanEmail);
+    const candidateEmails = getCandidateSecrets().map((s: string) => encryptDeterministic(cleanEmail, s));
 
-    // Check by encrypted email or plaintext legacy
+    // Check by encrypted email across all candidate secrets or plaintext legacy
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: encEmail },
+          ...candidateEmails.map((e: string) => ({ email: e })),
           { email: cleanEmail },
         ],
       },
@@ -49,6 +51,7 @@ router.post('/register', async (req, res): Promise<void> => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const encryptedName = encryptText(name.trim());
+    const encEmail = encryptEmail(cleanEmail);
 
     const user = await prisma.user.create({
       data: {
@@ -99,30 +102,17 @@ router.post('/login', async (req, res): Promise<void> => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const encEmail = encryptEmail(cleanEmail);
+    const candidateEmails = getCandidateSecrets().map((s: string) => encryptDeterministic(cleanEmail, s));
 
-    // Look for user by deterministic encrypted email first
-    let user = await prisma.user.findUnique({
-      where: { email: encEmail },
+    // Look for user by any deterministic encrypted email candidate or plaintext
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          ...candidateEmails.map((e: string) => ({ email: e })),
+          { email: cleanEmail },
+        ],
+      },
     });
-
-    // Fallback for unmigrated legacy plain email
-    if (!user) {
-      user = await prisma.user.findUnique({
-        where: { email: cleanEmail },
-      });
-
-      // Seamlessly upgrade legacy user to encrypted email & name
-      if (user) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            email: encEmail,
-            name: encryptText(user.name),
-          },
-        });
-      }
-    }
 
     if (!user) {
       res.status(401).json({ error: 'E-mail ou senha incorretos.' });
@@ -135,8 +125,25 @@ router.post('/login', async (req, res): Promise<void> => {
       return;
     }
 
+    // Auto-migrate: ensure user email and name are securely encrypted with primary secret
+    const primaryEncEmail = encryptEmail(cleanEmail);
+    const cleanName = decryptText(user.name);
+    if (user.email !== primaryEncEmail || user.name.startsWith('enc:v1:') && decryptText(user.name) !== user.name) {
+      try {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: primaryEncEmail,
+            name: encryptText(cleanName),
+          },
+        });
+      } catch (upgradeErr) {
+        console.warn('Silent user upgrade skipped:', upgradeErr);
+      }
+    }
+
     const token = jwt.sign(
-      { userId: user.id, email: decryptText(user.email) },
+      { userId: user.id, email: cleanEmail },
       JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -159,7 +166,7 @@ router.post('/login', async (req, res): Promise<void> => {
 // Get Current User Profile
 router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
         id: true,
@@ -174,6 +181,31 @@ router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response):
       return;
     }
 
+    // Auto-heal if database has older encryption or plaintext email
+    const decryptedEmail = decryptText(user.email);
+    const decryptedName = decryptText(user.name);
+    const primaryEncEmail = encryptEmail(decryptedEmail);
+
+    if (decryptedEmail && user.email !== primaryEncEmail) {
+      try {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: primaryEncEmail,
+            name: encryptText(decryptedName),
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        });
+      } catch {
+        // Migration can continue silently
+      }
+    }
+
     res.json({ user: decryptUser(user) });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -184,11 +216,34 @@ router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response):
 // Update Profile
 router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { name } = req.body;
+    const { name, email } = req.body;
 
     const dataToUpdate: Record<string, any> = {};
-    if (name !== undefined) {
-      dataToUpdate.name = encryptText(String(name).trim());
+    if (name !== undefined && String(name).trim()) {
+      const cleanName = decryptText(String(name).trim());
+      dataToUpdate.name = encryptText(cleanName);
+    }
+
+    if (email !== undefined && String(email).trim()) {
+      const cleanEmail = decryptText(String(email).trim().toLowerCase());
+      const candidateEmails = getCandidateSecrets().map((s: string) => encryptDeterministic(cleanEmail, s));
+
+      const existing = await prisma.user.findFirst({
+        where: {
+          id: { not: req.userId },
+          OR: [
+            ...candidateEmails.map((e: string) => ({ email: e })),
+            { email: cleanEmail },
+          ],
+        },
+      });
+
+      if (existing) {
+        res.status(400).json({ error: 'Este e-mail já está sendo utilizado por outra conta.' });
+        return;
+      }
+
+      dataToUpdate.email = encryptEmail(cleanEmail);
     }
 
     const updatedUser = await prisma.user.update({

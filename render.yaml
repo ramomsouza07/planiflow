@@ -16,5 +16,7 @@ services:
         sync: false
       - key: DIRECT_URL
         sync: false
+      - key: ENCRYPTION_KEY
+        value: planiflow_super_seguro_jwt_2026_isolated
       - key: JWT_SECRET
         generateValue: true
