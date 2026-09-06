@@ -3,6 +3,7 @@ import { Search, ChevronLeft, ChevronRight, Bell, Menu, ShieldCheck } from 'luci
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
 import { formatMonthYear } from '../utils/formatters';
+import { breakHashSync } from '../utils/clientEncryption';
 
 interface TopHeaderProps {
   onToggleMobileSidebar: () => void;
@@ -15,6 +16,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
 }) => {
   const { selectedMonth, setSelectedMonth, filters, setFilters } = useFinance();
   const { user } = useAuth();
+
+  const cleanName = user?.name 
+    ? (user.name.startsWith('enc:v1:') ? breakHashSync(user.name, user.email ? user.email.split('@')[0] : 'Meu Painel') : user.name) 
+    : '';
+
+  const cleanEmail = user?.email 
+    ? (user.email.startsWith('enc:v1:') ? breakHashSync(user.email, '') : user.email) 
+    : '';
 
   const handleMonthChange = (offset: number) => {
     const [year, month] = selectedMonth.split('-').map(Number);
@@ -99,14 +108,14 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
           title="Painel do Usuário & Configurações"
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-brand-blue to-teal-400 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-brand-blue/20">
-            {(user?.name || 'U').charAt(0).toUpperCase()}
+            {((cleanName || 'U').charAt(0)).toUpperCase()}
           </div>
           <div className="hidden xl:block text-left leading-tight">
             <div className="text-xs font-bold text-white group-hover:text-brand-blue transition truncate max-w-[120px]">
-              {user?.name || 'Meu Painel'}
+              {cleanName || 'Meu Painel'}
             </div>
             <div className="text-[10px] text-slate-500 truncate max-w-[120px]">
-              {user?.email || 'Gerenciar'}
+              {cleanEmail || user?.email || 'Gerenciar'}
             </div>
           </div>
         </div>

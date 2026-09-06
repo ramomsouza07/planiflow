@@ -19,6 +19,7 @@ import {
 import { useFinance } from '../context/FinanceContext';
 import { useAuth } from '../context/AuthContext';
 import { exportToCSV, parseCSV } from '../utils/csv';
+import { breakHashSync } from '../utils/clientEncryption';
 
 export type ViewType = 
   | 'dashboard' 
@@ -46,6 +47,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { filteredTransactions, bulkAddTransactions, clearAllTransactions, transactions } = useFinance();
   const { user, logout } = useAuth();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const cleanName = user?.name 
+    ? (user.name.startsWith('enc:v1:') ? breakHashSync(user.name, user.email ? user.email.split('@')[0] : 'Investidor') : user.name) 
+    : '';
+
+  const cleanEmail = user?.email 
+    ? (user.email.startsWith('enc:v1:') ? breakHashSync(user.email, '') : user.email) 
+    : '';
+
+  const firstName = cleanName && cleanName !== 'Investidor' 
+    ? cleanName.split(' ')[0] 
+    : (cleanEmail ? cleanEmail.split('@')[0] : 'Investidor');
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User Greeting matching ref.jpg */}
         <div className="px-2">
           <h2 className="text-xl font-bold text-white tracking-tight leading-tight truncate">
-            Olá, {user?.name ? user.name.split(' ')[0] : 'Investidor'}
+            Olá, {firstName}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Visão geral do seu fluxo mensal
@@ -283,11 +296,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <div className="flex items-center gap-2.5 truncate">
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-brand-blue to-teal-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {(user?.name || 'U').charAt(0).toUpperCase()}
+              {((cleanName || firstName || 'U').charAt(0)).toUpperCase()}
             </div>
             <div className="truncate text-left">
-              <div className="text-xs font-semibold text-white truncate">{user?.name || 'Usuário'}</div>
-              <div className="text-[10px] text-slate-500 truncate">{user?.email}</div>
+              <div className="text-xs font-semibold text-white truncate">{cleanName || firstName || 'Usuário'}</div>
+              <div className="text-[10px] text-slate-500 truncate">{cleanEmail || user?.email}</div>
             </div>
           </div>
           <button 

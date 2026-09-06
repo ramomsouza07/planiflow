@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useFinance } from '../context/FinanceContext';
 import { 
@@ -23,6 +23,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '../services/api';
+import { breakHash } from '../utils/clientEncryption';
 
 export const SettingsView: React.FC = () => {
   const { user, updateProfile, logout, changePassword } = useAuth();
@@ -46,6 +47,31 @@ export const SettingsView: React.FC = () => {
   const [securityStatus, setSecurityStatus] = useState<any>(null);
   const [isVerifyingSecurity, setIsVerifyingSecurity] = useState(false);
   const [securityVerified, setSecurityVerified] = useState(false);
+
+  // Sync user details and break encrypted hashes if present
+  useEffect(() => {
+    const syncUser = async () => {
+      if (!user) return;
+      let cleanName = user.name || '';
+      let cleanEmail = user.email || '';
+      if (cleanName.startsWith('enc:v1:')) {
+        cleanName = await breakHash(cleanName);
+      }
+      if (cleanEmail.startsWith('enc:v1:')) {
+        cleanEmail = await breakHash(cleanEmail);
+      }
+      if (cleanName) setName(cleanName);
+      if (cleanEmail) setEmail(cleanEmail);
+      if (user.monthlyIncomeEstimate !== undefined && user.monthlyIncomeEstimate !== null) {
+        setIncome(user.monthlyIncomeEstimate.toString());
+      }
+      if (user.savingsGoalPercentage !== undefined && user.savingsGoalPercentage !== null) {
+        setSavingsGoal(user.savingsGoalPercentage.toString());
+      }
+      if (user.preferredCurrency) setCurrency(user.preferredCurrency);
+    };
+    syncUser();
+  }, [user]);
 
   // Change Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -238,11 +264,11 @@ export const SettingsView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1b202e]">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-blue to-teal-400 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-brand-blue/25">
-              {(user?.name || 'U').charAt(0).toUpperCase()}
+              {(name || user?.name || 'U').charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">{user?.name || 'Investidor'}</h3>
-              <p className="text-xs text-slate-500">{user?.email}</p>
+              <h3 className="text-sm font-bold text-white">{name || user?.name || 'Investidor'}</h3>
+              <p className="text-xs text-slate-500">{email || user?.email}</p>
             </div>
           </div>
 
