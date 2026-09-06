@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, formatMonthYear } from '../utils/formatters';
+import { cleanText } from '../utils/clientEncryption';
 import type { 
   Transaction, 
   TransactionType, 
@@ -116,13 +117,13 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
   useEffect(() => {
     if (editingTransaction) {
       setType(editingTransaction.type);
-      setDescription(editingTransaction.description);
+      setDescription(cleanText(editingTransaction.description));
       setAmount(editingTransaction.amount.toString());
       setDate(editingTransaction.date);
       setCategory(editingTransaction.category);
       setPaymentMethod(editingTransaction.paymentMethod);
       setStatus(editingTransaction.status);
-      setNotes(editingTransaction.notes || '');
+      setNotes(cleanText(editingTransaction.notes || ''));
       setCardId(editingTransaction.cardId || (creditCards[0]?.id || ''));
       setInstallments(editingTransaction.installmentTotal || 1);
 
@@ -292,10 +293,12 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
       if (typeFilter !== 'all' && tx.type !== typeFilter) return false;
       if (searchFilter.trim()) {
         const q = searchFilter.toLowerCase();
+        const desc = cleanText(tx.description).toLowerCase();
+        const notes = tx.notes ? cleanText(tx.notes).toLowerCase() : '';
         return (
-          tx.description.toLowerCase().includes(q) ||
+          desc.includes(q) ||
           tx.category.toLowerCase().includes(q) ||
-          (tx.notes && tx.notes.toLowerCase().includes(q))
+          notes.includes(q)
         );
       }
       return true;
@@ -872,8 +875,8 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
                             {isIncome ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                           </div>
                           <div>
-                            <span className="font-bold text-white block">{tx.description}</span>
-                            {tx.notes && <span className="text-[10px] text-slate-500 block truncate max-w-xs">{tx.notes}</span>}
+                            <span className="font-bold text-white block">{cleanText(tx.description, 'Lançamento')}</span>
+                            {tx.notes && <span className="text-[10px] text-slate-500 block truncate max-w-xs">{cleanText(tx.notes)}</span>}
                           </div>
                         </div>
                       </td>
@@ -920,13 +923,13 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
                           <button
                             onClick={() => {
                               setType(tx.type);
-                              setDescription(tx.description);
+                              setDescription(cleanText(tx.description));
                               setAmount(tx.amount.toString());
                               setDate(tx.date);
                               setCategory(tx.category);
                               setPaymentMethod(tx.paymentMethod);
                               setStatus(tx.status);
-                              setNotes(tx.notes || '');
+                              setNotes(cleanText(tx.notes || ''));
                               formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }}
                             className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#151926] transition"
@@ -936,7 +939,7 @@ export const OperacoesView: React.FC<OperacoesViewProps> = ({
                           </button>
                           <button
                             onClick={() => {
-                              if (window.confirm(`Excluir permanentemente "${tx.description}"?`)) {
+                              if (window.confirm(`Excluir permanentemente "${cleanText(tx.description, 'Lançamento')}"?`)) {
                                 deleteTransaction(tx.id);
                               }
                             }}

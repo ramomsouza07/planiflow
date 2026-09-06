@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency } from '../utils/formatters';
+import { cleanText } from '../utils/clientEncryption';
 import type { InvestmentAsset, InvestmentType } from '../types/finance';
 import { INVESTMENT_TYPE_LABELS } from '../types/finance';
 import { 
@@ -147,14 +148,14 @@ export const InvestmentsView: React.FC = () => {
 
   const handleEditAsset = (asset: InvestmentAsset) => {
     setEditingAsset(asset);
-    setName(asset.name);
-    setTicker(asset.ticker || '');
+    setName(cleanText(asset.name));
+    setTicker(cleanText(asset.ticker || ''));
     setType(asset.type);
-    setInstitution(asset.institution);
+    setInstitution(cleanText(asset.institution));
     setTotalInvested(asset.totalInvested.toString());
     setCurrentValue(asset.currentValue.toString());
     setMonthlyYield((asset.monthlyYield || 0).toString());
-    setNotes(asset.notes || '');
+    setNotes(cleanText(asset.notes || ''));
     setQuoteSearchMsg('');
     setAutoYieldMsg('');
     setIsAssetModalOpen(true);
@@ -478,7 +479,7 @@ export const InvestmentsView: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white">Reserva de Emergência</h3>
-                <p className="text-[11px] text-slate-500">{emergencyFund.institution}</p>
+                <p className="text-[11px] text-slate-500">{cleanText(emergencyFund.institution, 'NuConta / Tesouro Selic')}</p>
               </div>
             </div>
 
@@ -722,11 +723,11 @@ export const InvestmentsView: React.FC = () => {
                     return (
                       <tr key={asset.id} className="hover:bg-[#141824] transition">
                         <td className="py-3 px-4">
-                          <div className="font-semibold text-white">{asset.name}</div>
-                          <div className="text-[10px] text-slate-500">{asset.ticker ? `${asset.ticker} • ` : ''}{INVESTMENT_TYPE_LABELS[asset.type]}</div>
+                          <div className="font-semibold text-white">{cleanText(asset.name, 'Ativo')}</div>
+                          <div className="text-[10px] text-slate-500">{asset.ticker ? `${cleanText(asset.ticker)} • ` : ''}{INVESTMENT_TYPE_LABELS[asset.type]}</div>
                         </td>
                         <td className="py-3 px-4 text-slate-400 text-[11px]">
-                          {asset.institution}
+                          {cleanText(asset.institution)}
                         </td>
                         <td className="py-3 px-4 font-mono text-slate-300">
                           {formatCurrency(asset.totalInvested)}

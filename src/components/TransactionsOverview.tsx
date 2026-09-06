@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import type { Transaction, TransactionType, PaymentMethod, TransactionStatus } from '../types/finance';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { cleanText } from '../utils/clientEncryption';
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -259,8 +260,8 @@ export const TransactionsOverview: React.FC<TransactionsOverviewProps> = ({
                           {isIncome ? '+' : '-'}
                         </div>
                         <div>
-                          <div className="font-semibold text-white tracking-tight">{tx.description}</div>
-                          {tx.notes && <div className="text-[10px] text-slate-500 truncate max-w-xs">{tx.notes}</div>}
+                          <div className="font-semibold text-white tracking-tight">{cleanText(tx.description, 'Lançamento')}</div>
+                          {tx.notes && <div className="text-[10px] text-slate-500 truncate max-w-xs">{cleanText(tx.notes)}</div>}
                         </div>
                       </div>
                     </td>
@@ -308,7 +309,7 @@ export const TransactionsOverview: React.FC<TransactionsOverviewProps> = ({
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm(`Excluir "${tx.description}"?`)) {
+                            if (window.confirm(`Excluir "${cleanText(tx.description, 'Lançamento')}"?`)) {
                               deleteTransaction(tx.id);
                             }
                           }}

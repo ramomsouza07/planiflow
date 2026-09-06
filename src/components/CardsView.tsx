@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, formatMonthYear } from '../utils/formatters';
+import { cleanText } from '../utils/clientEncryption';
 import type { CreditCard } from '../types/finance';
 import { 
   CreditCard as CardIcon, 
@@ -560,7 +561,7 @@ export const CardsView: React.FC<CardsViewProps> = ({ onGoToOperacoes }) => {
                         )}
                       </div>
                       <div className="truncate">
-                        <span className="font-semibold text-white block truncate">{tx.description}</span>
+                        <span className="font-semibold text-white block truncate">{cleanText(tx.description, 'Lançamento')}</span>
                         <div className="flex items-center gap-2 text-[10px] text-slate-500">
                           <span>{tx.date}</span>
                           <span>•</span>

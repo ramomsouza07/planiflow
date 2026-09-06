@@ -1,4 +1,5 @@
 import type { Transaction, PaymentMethod, TransactionStatus, TransactionType } from '../types/finance';
+import { cleanText } from './clientEncryption';
 
 export const exportToCSV = (transactions: Transaction[], filename = 'transacoes-financeiras.csv') => {
   const headers = ['ID', 'Tipo', 'Descrição', 'Categoria', 'Valor (R$)', 'Data', 'Forma de Pagamento', 'Status', 'Observações'];
@@ -6,13 +7,13 @@ export const exportToCSV = (transactions: Transaction[], filename = 'transacoes-
   const rows = transactions.map((t) => [
     t.id,
     t.type === 'income' ? 'Entrada' : 'Saída',
-    `"${t.description.replace(/"/g, '""')}"`,
+    `"${cleanText(t.description, 'Lançamento').replace(/"/g, '""')}"`,
     `"${t.category.replace(/"/g, '""')}"`,
     t.amount.toFixed(2),
     t.date,
     t.paymentMethod,
     t.status === 'completed' ? 'Concluído' : 'Pendente',
-    `"${(t.notes || '').replace(/"/g, '""')}"`
+    `"${cleanText(t.notes || '').replace(/"/g, '""')}"`
   ]);
 
   const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');

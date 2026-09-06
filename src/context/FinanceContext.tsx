@@ -16,6 +16,13 @@ import { getCurrentMonth } from '../utils/formatters';
 import { calculateFinancialScore } from '../utils/scoreCalculator';
 import { api, getToken } from '../services/api';
 import { useAuth } from './AuthContext';
+import { 
+  clientDecryptTransaction, 
+  clientDecryptTransactions, 
+  clientDecryptInvestment, 
+  clientDecryptInvestments, 
+  clientDecryptEmergencyFund 
+} from '../utils/clientEncryption';
 
 interface FinanceContextType {
   transactions: Transaction[];
@@ -218,11 +225,15 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         api.emergencyFund.get().catch(() => ({ emergencyFund: DEFAULT_EMERGENCY_FUND })),
       ]);
 
-      setTransactions(txRes.transactions || []);
-      setInvestments(invRes.investments || []);
-      if (efRes.emergencyFund) {
-        setEmergencyFund(efRes.emergencyFund);
-      }
+      const [decryptedTransactions, decryptedInvestments, decryptedEmergencyFund] = await Promise.all([
+        clientDecryptTransactions(txRes.transactions || []),
+        clientDecryptInvestments(invRes.investments || []),
+        efRes.emergencyFund ? clientDecryptEmergencyFund(efRes.emergencyFund) : DEFAULT_EMERGENCY_FUND,
+      ]);
+
+      setTransactions(decryptedTransactions);
+      setInvestments(decryptedInvestments);
+      setEmergencyFund(decryptedEmergencyFund);
     } catch (err) {
       console.error('Erro ao carregar dados do usuário:', err);
     } finally {
@@ -239,7 +250,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const res = await api.transactions.create(data);
       if (res.transaction) {
-        setTransactions(prev => [res.transaction, ...prev]);
+        const cleanTx = await clientDecryptTransaction(res.transaction);
+        setTransactions(prev => [cleanTx, ...prev]);
       }
     } catch {
       // Offline / guest fallback
@@ -255,7 +267,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateTransaction = async (id: string, data: Partial<Transaction>) => {
     try {
       const res = await api.transactions.update(id, data);
-      setTransactions(prev => prev.map(t => t.id === id ? res.transaction : t));
+      if (res.transaction) {
+        const cleanTx = await clientDecryptTransaction(res.transaction);
+        setTransactions(prev => prev.map(t => t.id === id ? cleanTx : t));
+      }
     } catch {
       setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
     }
@@ -287,7 +302,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       await api.transactions.bulk(validItems);
       const res = await api.transactions.getAll();
-      setTransactions(res.transactions);
+      const cleanTxs = await clientDecryptTransactions(res.transactions || []);
+      setTransactions(cleanTxs);
     } catch (err) {
       console.error('Error importing bulk transactions:', err);
     }
@@ -475,7 +491,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const res = await api.investments.create(asset);
       if (res.investment) {
-        setInvestments(prev => [res.investment, ...prev]);
+        const cleanAsset = await clientDecryptInvestment(res.investment);
+        setInvestments(prev => [cleanAsset, ...prev]);
       }
     } catch {
       const newAsset: InvestmentAsset = {
@@ -490,7 +507,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateInvestment = async (id: string, asset: Partial<InvestmentAsset>) => {
     try {
       const res = await api.investments.update(id, asset);
-      setInvestments(prev => prev.map(i => i.id === id ? res.investment : i));
+      if (res.investment) {
+        const cleanAsset = await clientDecryptInvestment(res.investment);
+        setInvestments(prev => prev.map(i => i.id === id ? cleanAsset : i));
+      }
     } catch {
       setInvestments(prev => prev.map(i => i.id === id ? { ...i, ...asset } : i));
     }
@@ -510,7 +530,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       const res = await api.emergencyFund.update(config);
       if (res.emergencyFund) {
-        setEmergencyFund(res.emergencyFund);
+        const cleanEf = await clientDecryptEmergencyFund(res.emergencyFund);
+        setEmergencyFund(cleanEf);
       }
     } catch {
       setEmergencyFund(prev => ({ ...prev, ...config }));

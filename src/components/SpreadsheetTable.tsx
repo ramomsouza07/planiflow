@@ -3,6 +3,7 @@ import { useFinance } from '../context/FinanceContext';
 import type { Transaction, TransactionType, PaymentMethod, TransactionStatus } from '../types/finance';
 import { PAYMENT_METHOD_LABELS } from '../types/finance';
 import { formatCurrency, formatDate, getRelativeTime } from '../utils/formatters';
+import { cleanText } from '../utils/clientEncryption';
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -368,10 +369,10 @@ export const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({ onEditTransa
 
                     {/* O que / Descrição */}
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-200">{tx.description}</div>
+                      <div className="font-semibold text-slate-200">{cleanText(tx.description, 'Lançamento')}</div>
                       {tx.notes && (
                         <div className="text-[11px] text-slate-400 italic truncate max-w-xs">
-                          {tx.notes}
+                          {cleanText(tx.notes)}
                         </div>
                       )}
                     </td>
@@ -434,7 +435,7 @@ export const SpreadsheetTable: React.FC<SpreadsheetTableProps> = ({ onEditTransa
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm(`Excluir "${tx.description}"?`)) {
+                            if (window.confirm(`Excluir "${cleanText(tx.description, 'Lançamento')}"?`)) {
                               deleteTransaction(tx.id);
                             }
                           }}
