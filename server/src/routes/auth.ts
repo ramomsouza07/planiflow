@@ -85,9 +85,12 @@ router.post('/register', async (req, res): Promise<void> => {
       token,
       message: 'Conta criada com sucesso com criptografia ativada!',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Erro ao criar conta no banco de dados.' });
+    res.status(500).json({ 
+      error: 'Erro ao criar conta no banco de dados.',
+      details: error?.message || 'Erro desconhecido',
+    });
   }
 });
 
@@ -157,9 +160,12 @@ router.post('/login', async (req, res): Promise<void> => {
       }),
       token,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Erro ao autenticar.' });
+    res.status(500).json({ 
+      error: 'Erro ao autenticar.',
+      details: error?.message || 'Erro desconhecido',
+    });
   }
 });
 
@@ -207,9 +213,12 @@ router.get('/me', requireAuth, async (req: AuthenticatedRequest, res: Response):
     }
 
     res.json({ user: decryptUser(user) });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get profile error:', error);
-    res.status(500).json({ error: 'Erro ao carregar perfil do usuário.' });
+    res.status(500).json({ 
+      error: 'Erro ao carregar perfil do usuário.',
+      details: error?.message || 'Erro desconhecido',
+    });
   }
 });
 

@@ -52,15 +52,17 @@ Para conectar com a sua conta do GitHub:
 ## 3. 🎨 Publicar o Frontend no Netlify
 
 1. Acesse [app.netlify.com](https://app.netlify.com/) e clique em **Add new site** > **Import an existing project**.
-2. Escolha **GitHub** e selecione o repositório `ramomsouza07/finflow`.
-3. O Netlify detectará automaticamente o arquivo [`netlify.toml`](file:///home/ramom/Documents/projeto-financeiro/netlify.toml) incluído no projeto:
+2. Escolha **GitHub** e selecione o repositório `ramomsouza07/planiflow`.
+3. O Netlify detectará automaticamente o arquivo [`netlify.toml`](file:///home/ramom/Documents/planiflow/netlify.toml) incluído no projeto:
    - **Build command:** `npm run build:client`
    - **Publish directory:** `dist`
 4. Clique em **Environment variables** (ou *Advanced* / *Site configuration* > *Environment variables*) e adicione:
    - **Key:** `VITE_API_URL`
-   - **Value:** `https://planiflow-backend-xxxx.onrender.com` *(a URL do Render que você copiou no Passo 2)*
+   - **Value:** `https://planiflow.onrender.com` *(ou a URL do seu serviço no Render)*
 5. Clique em **Deploy site**.
 6. O Netlify publicará o frontend e gerará um link público (ex: `https://planiflow.netlify.app`).
+
+> 💡 **Atenção sobre o Render:** Se o repositório foi renomeado no GitHub (de `finflow` para `planiflow`), o webhook automático do Render pode não ter disparado. No painel do Render, vá em **Manual Deploy** e selecione **Clear build cache & deploy**.
 
 ---
 
